@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
         IMPERIAL
     }
 
-    private final String URL_FMT = "http://openweathermap.org/data/2.5/find?q=%s&units=%s";
+//    private final String URL_FMT = "http://api.openweathermap.org/data/2.5/find?q=%s&units=%s";
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
     //api base: api.openweathermap.org/data/2.5/find?q={city}&units=imperial
@@ -38,14 +38,11 @@ public class MainActivity extends AppCompatActivity {
     public void sendOrlandoReq(View v) {
         ((TextView) findViewById(R.id.textView)).setText("sending request...");
         new PullTask(this, "Orlando").execute();
-
-//
     }
 
 
     /**
-     *
-     // 20181008180733
+     * sample:
      // https://samples.openweathermap.org/data/2.5/weather?lat=28.67&lon=-81.42&appid=b6907d289e10d714a6e88b30761fae22
 
      {
@@ -109,12 +106,13 @@ public class MainActivity extends AppCompatActivity {
 
             StringBuilder rawResp = new StringBuilder();
             try {
-//                api.openweathermap.org/data/2.5/find?q=orlando&units=imperial&appid=eb6d211c0e99deef8bb87c94621ce704
-                String formattedUrl = String.format(URL_FMT, city, UnitType.IMPERIAL.name(), apiKey);
+                String formattedUrl = String.format(URL_FMT, city, UnitType.IMPERIAL.name(),
+                        apiKey);
                 URL url = new URL(formattedUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
 
                 String line;
 
@@ -137,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            ((TextView)((MainActivity)context).findViewById(R.id.textView)).setText(rawResponse);
+            ((TextView)((MainActivity)context).findViewById(R.id.txtOutput)).setText(rawResponse);
             super.onPostExecute(aVoid);
         }
     }
