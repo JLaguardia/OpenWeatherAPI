@@ -1,24 +1,37 @@
 package com.prismsoftworks.openweatherapitest;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.task.PullTask;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.List;
 
-//    private final String URL_FMT = "http://api.openweathermap.org/data/2.5/find?q=%s&units=%s";
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMapClickListener {
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private GoogleMap mMap;
+    private SharedPreferences mPref;
+    private final String CITIES_KEY = "storedCities";
+    private List<CityListItem> mCitiesList = new ArrayList<>();
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
     //api base: api.openweathermap.org/data/2.5/find?q={city}&units=imperial
@@ -29,19 +42,56 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        init();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        //TODO: handle orientation shift
     }
 
-    public void sendOrlandoReq(View v) {
-
-//        ((TextView) findViewById(R.id.txtOutput)) //.setText("sending request...");
-        new PullTask("Orlando").execute();
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        this.mMap = googleMap;
+        mMap.setOnMapClickListener(this);
+        LatLng sydney = new LatLng(-34, 151);
+        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 
+    @Override
+    public void onMapClick(LatLng latLng) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//        PopupWindow poppy = new PopupWindow(this);
+
+        builder.setTitle(getResources().getString(R.string.new_pin_title));
+
+    }
+
+    private void init(){
+        ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map))
+                .getMapAsync(this);
+
+        mPref = getSharedPreferences("prefs", MODE_PRIVATE);
+        String citiesCsv = mPref.getString(CITIES_KEY, "");
+        if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
+            for(String city : citiesCsv.split(";")){
+                String[] info = city.split(",");
+                mCitiesList.add(new CityListItem(info[0], new LatLng(Double.parseDouble(info[1]),
+                        Double.parseDouble(info[2]))));
+            }
+        }
+
+        FloatingActionButton vbtn = findViewById(R.id.btnAction);
+        vbtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+    }
 
     /**
      * sample:

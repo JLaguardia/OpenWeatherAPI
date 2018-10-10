@@ -5,9 +5,9 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.prismsoftworks.openweatherapitest.model.CityItem;
-import com.prismsoftworks.openweatherapitest.model.UnitType;
-import com.prismsoftworks.openweatherapitest.model.WrapperObj;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
+import com.prismsoftworks.openweatherapitest.model.city.UnitType;
+import com.prismsoftworks.openweatherapitest.model.city.WrapperObj;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class PullTask extends AsyncTask<Void, Void, Void> {
+    //api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s
     private final String URL_FMT = "http://api.openweathermap.org/data/2.5/find?q=%s&units=%s&appid=%s";
     private final String city;
     private final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";

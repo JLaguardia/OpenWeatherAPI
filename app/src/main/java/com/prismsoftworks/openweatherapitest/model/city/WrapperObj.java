@@ -1,7 +1,4 @@
-package com.prismsoftworks.openweatherapitest.model;
-
-import java.util.ArrayList;
-import java.util.List;
+package com.prismsoftworks.openweatherapitest.model.city;
 
 public class WrapperObj {
 

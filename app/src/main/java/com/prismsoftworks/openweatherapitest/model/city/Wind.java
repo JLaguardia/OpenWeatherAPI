@@ -1,4 +1,4 @@
-package com.prismsoftworks.openweatherapitest.model;
+package com.prismsoftworks.openweatherapitest.model.city;
 
 public class Wind {
     private double speed;

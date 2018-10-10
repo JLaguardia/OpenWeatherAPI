@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">OpenWeatherAPITest</string>
+
+    <string name="new_pin_title">New Pin</string>
+    <string name="name_pin_message">Name this pin</string>
+
+    <string name="remove_pin_title">Delete Pin</string>
+    <string name="remove_pin_message">Do you want to remove this pin?</string>
+
+    <string name="rename_pin_title">Rename Pin</string>
+
+    <string name="noname_pin_detail_title">In this area</string>
+    <string name="pin_detail_current">Current weather</string>
+    <string name="pin_detail_forecast">5 Day Forecast</string>
+    <string name="default_details">Obtaining weather info…</string>
+
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancel</string>
 </resources>

@@ -1,4 +1,4 @@
-package com.prismsoftworks.openweatherapitest.model;
+package com.prismsoftworks.openweatherapitest.model.city;
 
 
 import com.google.gson.annotations.SerializedName;
