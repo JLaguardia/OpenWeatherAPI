@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import com.prismsoftworks.openweatherapitest.task.PullTask;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -15,12 +17,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
-
-    private enum UnitType{
-        KELVIN,
-        METRIC,
-        IMPERIAL
-    }
 
 //    private final String URL_FMT = "http://api.openweathermap.org/data/2.5/find?q=%s&units=%s";
 
@@ -35,9 +31,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
     public void sendOrlandoReq(View v) {
-        ((TextView) findViewById(R.id.textView)).setText("sending request...");
-        new PullTask(this, "Orlando").execute();
+
+//        ((TextView) findViewById(R.id.txtOutput)) //.setText("sending request...");
+        new PullTask("Orlando").execute();
     }
 
 
@@ -88,55 +90,5 @@ public class MainActivity extends AppCompatActivity {
      }
      */
 
-    private static class PullTask extends AsyncTask<Void, Void, Void>{
 
-        private final Context context;
-        private final String URL_FMT = "http://api.openweathermap.org/data/2.5/find?q=%s&units=%s&appid=%s";
-        private final String city;
-        private final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";
-        private String rawResponse = "";
-
-        public PullTask(Context context, String city){
-            this.context = context;
-            this.city = city;
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-
-            StringBuilder rawResp = new StringBuilder();
-            try {
-                String formattedUrl = String.format(URL_FMT, city, UnitType.IMPERIAL.name(),
-                        apiKey);
-                URL url = new URL(formattedUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream()));
-
-                String line;
-
-                while((line = reader.readLine()) != null){
-                    rawResp.append(line);
-                }
-
-                reader.close();
-            } catch (MalformedURLException mue){
-                mue.printStackTrace();
-                rawResp.append(mue.getMessage());
-            } catch (IOException e) {
-                e.printStackTrace();
-                rawResp.append(e.getMessage());
-            }
-
-            rawResponse = rawResp.toString();
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            ((TextView)((MainActivity)context).findViewById(R.id.txtOutput)).setText(rawResponse);
-            super.onPostExecute(aVoid);
-        }
-    }
 }
