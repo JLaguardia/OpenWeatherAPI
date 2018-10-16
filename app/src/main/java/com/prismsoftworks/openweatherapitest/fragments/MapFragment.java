@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -24,21 +25,25 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleMap.OnMapClickListener{
     private static final String TAG = MapFragment.class.getSimpleName();
     private GoogleMap mMap;
-    private Set<LatLng> mSavedCoords = new HashSet<>();
+//    private Set<LatLng> mSavedCoords = new HashSet<>();
     private Set<CityListItem> mSavedCities = new HashSet<>();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        CityListService.getInstance().registerMapFragment(this);
         View v = inflater.inflate(R.layout.map_fragment, container, false);
         ((SupportMapFragment)getChildFragmentManager().findFragmentById(R.id.map)).getMapAsync(this);
         //do something with v if necessary
@@ -69,21 +74,35 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
 
     @Override
     public void onMapClick(LatLng latLng) {
+        String title = getResources().getString(R.string.new_pin_title);
         MarkerOptions marker = new MarkerOptions()
                 .position(new LatLng(latLng.latitude, latLng.longitude))
-                .title(getResources().getString(R.string.new_pin_title));
-
+                .title(title);
         mMap.addMarker(marker);
+
+        CityListItem item = new CityListItem(title,
+                marker.getPosition());
+        mSavedCities = CityListService.getInstance().bookmarkCity(item);
     }
 
-    public MapFragment setCoords(Set<LatLng> coords){
-        this.mSavedCoords = coords;
-        return this;
+    public void moveCamera(LatLng coord){
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(coord, 9.0f));
+
     }
+
+//    public MapFragment setCoords(Set<LatLng> coords){
+//        this.mSavedCoords = coords;
+//        return this;
+//    }
 
     public MapFragment setCities(Set<CityListItem> cities){
         this.mSavedCities = cities;
         return this;
+    }
+
+    public void refreshMap(){
+        mMap.clear();
+        initMap();
     }
 
     private void initMap(){
@@ -93,11 +112,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         final Context context = getContext();
 
         for(CityListItem city : mSavedCities){
-            mMap.addMarker(new MarkerOptions().title(city.getName()).position(city.getCoordinates()));
+            if(city != null) {
+                mMap.addMarker(new MarkerOptions().title(city.getName()).position(city.getCoordinates()));
+            }
         }
 
         if(mSavedCities.size() > 0){
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(mSavedCities.iterator().next().getCoordinates()));
+            CityListItem firstCity = mSavedCities.iterator().next();
+            if(firstCity != null) {
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firstCity.getCoordinates(), 9.0f));
+            }
         }
 
 
@@ -106,12 +130,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
             @Override
             public boolean onMarkerClick(final Marker marker) {
                 LatLng coords = marker.getPosition();
-                for(LatLng savedCoords : mSavedCoords){
-                    if(savedCoords.latitude == coords.latitude &&
-                            savedCoords.longitude == coords.longitude ){
+                for(CityListItem city : mSavedCities){
+                    if(coords.equals(city.getCoordinates())){
                         marker.showInfoWindow();
-                        //TODO: open cities frag for this location.
-                        return true;
+                        //TODO open cities frag for this location
                     }
                 }
 
@@ -129,11 +151,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 marker.setTitle(input.getText().toString());
-                                mSavedCoords.add(marker.getPosition());
+//                                mSavedCoords.add(marker.getPosition());
                                 marker.showInfoWindow();
                                 CityListItem item = new CityListItem(input.getText().toString(),
                                         marker.getPosition());
                                 CityListService.getInstance().bookmarkCity(item);
+                                mSavedCities.add(item);
                             }
                         });
 

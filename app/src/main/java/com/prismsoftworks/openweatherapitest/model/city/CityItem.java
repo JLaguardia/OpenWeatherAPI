@@ -16,22 +16,31 @@ public class CityItem {
     @SerializedName("wind")
     private Wind wind;
 
+    @SerializedName("clouds")
+    private Cloud clouds = new Cloud();
+
+    @SerializedName("rain")
+    private Rain rain = new Rain();
+
     @SerializedName("sys")
     private Intl intl;
 
     private class Intl{
-        public String country;
+        @SerializedName("country")
+        private String country;
         public String getCountry() {
             return country;
         }
-
         public void setCountry(String country) {
             this.country = country;
         }
 
     }
 
+    @SerializedName("id")
     private int id;
+
+    @SerializedName("name")
     private String name;
 
     public Coordinates getCoordinates() {
@@ -88,5 +97,21 @@ public class CityItem {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Cloud getClouds() {
+        return clouds;
+    }
+
+    public void setClouds(Cloud clouds) {
+        this.clouds = clouds;
+    }
+
+    public Rain getRain() {
+        return rain;
+    }
+
+    public void setRain(Rain rain) {
+        this.rain = rain;
     }
 }

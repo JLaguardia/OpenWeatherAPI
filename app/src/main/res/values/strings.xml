@@ -22,6 +22,31 @@
     <string name="delete_confirm">Confirm Delete</string>
     <string name="delete_message">Are you sure you want to delete this bookmark?</string>
 
+    <string name="city_noname_label">New Location</string>
+
     <string name="city_def_label">No Areas Bookmarked</string>
     <string name="city_def_temp">Bookmark an area by tapping on a desired location and giving it a nickname</string>
+
+    <string name="city_rename_label">Rename Location</string>
+    <string name="city_rename_hint">Name of this location</string>
+
+    <!-- imported strings -->
+    <string name="city">Location</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="current_forecast_label">Current Forecast</string>
+    <string name="temperature_label">Temperature: </string>
+    <string name="humidity_label">Humidity: </string>
+    <string name="rain_level_label">3 Hour Rain Level: </string>
+    <string name="cloudiness_label">Cloud Coverage: </string>
+    <string name="wind_speed_label">Wind Speed: </string>
+    <string name="wind_direction_label">Wind Direction: </string>
+    <string name="open">Open</string>
+    <string name="close">Close</string>
+    <string name="setting_label">Settings</string>
+    <string name="help_label">Help</string>
+    <string name="units_label">Unit System</string>
+    <string name="imperial_measurement">Imperial</string>
+    <string name="metric_measurement">Metric</string>
+
 </resources>

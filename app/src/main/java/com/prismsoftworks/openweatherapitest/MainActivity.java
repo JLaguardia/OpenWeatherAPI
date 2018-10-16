@@ -1,6 +1,8 @@
 package com.prismsoftworks.openweatherapitest;
 
 import android.content.SharedPreferences;
+import android.support.design.widget.AppBarLayout;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
@@ -8,9 +10,11 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.LinearLayout;
 
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
+import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 
@@ -29,10 +33,12 @@ public class MainActivity extends FragmentActivity {
     private GoogleMap mMap;
     private SharedPreferences mPref;
     public static final String CITIES_KEY = "storedCities";
-    private List<CityItem> infoWindowCities = new ArrayList<>();
     private Set<CityListItem> savedCities = new HashSet<>();
     private CityItemInfoAdapter mInfoAdapter = null;
     private FragmentManager mFragMan = null;
+    private MapFragment mapFragment;
+    private CityDetailFragment cityDetailFragment;
+    private boolean appInit = false;
 
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
@@ -49,16 +55,14 @@ public class MainActivity extends FragmentActivity {
     protected void onResume() {
         super.onResume();
         setContentView(R.layout.test_coordinator);
+        CityListService.getInstance().registerContext(this);
         ((LinearLayout)findViewById(R.id.mainContainer))
                 .setOrientation(getResources().getConfiguration().orientation);
         mFragMan = getSupportFragmentManager();
         init();
     }
 
-
-
     private void init(){
-        CityListService.getInstance().registerContext(this);
         mPref = getSharedPreferences("prefs", MODE_PRIVATE);
         final String citiesCsv = mPref.getString(CITIES_KEY, "");
         if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
@@ -69,8 +73,6 @@ public class MainActivity extends FragmentActivity {
                 savedCities.add(new CityListItem(info[0], coor));
             }
         }
-
-        Log.i(TAG, "saved cities: " + savedCities.size());
 
         RecyclerView savedRec = findViewById(R.id.markerRecycler);
         CityListItem[] arr = new CityListItem[savedCities.size()];
@@ -84,11 +86,79 @@ public class MainActivity extends FragmentActivity {
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
 
         //add map frag
-        FragmentTransaction ft = mFragMan.beginTransaction();
-        ft.replace(R.id.testFragContainer, new MapFragment().setCities(savedCities));
-        ft.commit();
+        mapFragment = new MapFragment().setCities(savedCities);
+        replaceFrag(mapFragment);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CityListService.getInstance().clearContext();
+    }
+
+    private void replaceFrag(Fragment frag){
+        FragmentTransaction ft = mFragMan.beginTransaction();
+        ft.replace(R.id.testFragContainer, frag, "test");
+        if(appInit) {
+            ft.addToBackStack(null);
+        }
+
+        ft.commit();
+        appInit = true;
+    }
+
+    private void setBarWeight(int weight){
+        Log.i(TAG, "setting bar weight to " + weight);
+        AppBarLayout bar = findViewById(R.id.main_appbar);
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) bar.getLayoutParams();
+        lp.weight = weight;
+        bar.setLayoutParams(lp);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(mFragMan.getBackStackEntryCount() > 0) {
+            if(mapFragment != null){
+                setBarWeight(0);
+            } else {
+                setBarWeight(1);
+            }
+
+            mFragMan.popBackStackImmediate();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    public void showCityDetails(CityListItem city){
+        if(cityDetailFragment == null){
+            cityDetailFragment = new CityDetailFragment();
+        }
+
+        cityDetailFragment.setCityItemFromListItem(city);
+        setBarWeight(0);
+        replaceFrag(cityDetailFragment);
+        mapFragment = null;
+    }
+
+    public void showMapScreen(){
+        if(mapFragment == null){
+            mapFragment = new MapFragment().setCities(savedCities);
+        }
+
+        setBarWeight(1);
+        replaceFrag(mapFragment);
+        cityDetailFragment = null;
+    }
+
+    public void clearRecycler(){
+        RecyclerView savedRec = findViewById(R.id.markerRecycler);
+        savedRec.removeAllViewsInLayout();
+    }
+
+//    public boolean onTouchEvent(MotionEvent me){
+//        return true;
+//    }
 
     /**
      * sample:

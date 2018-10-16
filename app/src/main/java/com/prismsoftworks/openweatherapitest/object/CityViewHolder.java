@@ -2,6 +2,7 @@ package com.prismsoftworks.openweatherapitest.object;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -14,6 +15,7 @@ public class CityViewHolder extends RecyclerView.ViewHolder{
     public TextView lblInfo;
     public ImageButton btnDelete;
     public ImageView imgWeatherIcon;
+    public ViewGroup container;
 
     public CityViewHolder(View itemView) {
         super(itemView);
@@ -26,5 +28,6 @@ public class CityViewHolder extends RecyclerView.ViewHolder{
         lblInfo = v.findViewById(R.id.lblInfo);
         btnDelete = v.findViewById(R.id.btnDelete);
         imgWeatherIcon = v.findViewById(R.id.imgWeatherIcon);
+        container = v.findViewById(R.id.cityDetailContainer);
     }
 }
