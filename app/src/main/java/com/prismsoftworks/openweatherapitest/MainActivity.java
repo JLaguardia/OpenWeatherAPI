@@ -1,44 +1,38 @@
 package com.prismsoftworks.openweatherapitest;
 
-import android.app.AlertDialog;
-import android.app.FragmentTransaction;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.text.InputType;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
-import com.google.android.gms.maps.model.Marker;
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
-import com.prismsoftworks.openweatherapitest.fragments.CitiesListFragment;
+import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 import com.prismsoftworks.openweatherapitest.model.city.CityItem;
-import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
+import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
+import com.prismsoftworks.openweatherapitest.service.CityListService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMapClickListener {
+public class MainActivity extends FragmentActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private GoogleMap mMap;
     private SharedPreferences mPref;
     public static final String CITIES_KEY = "storedCities";
     private List<CityItem> infoWindowCities = new ArrayList<>();
-    private Set<LatLng> savedCoords = new HashSet<>();
+    private Set<CityListItem> savedCities = new HashSet<>();
+    private CityItemInfoAdapter mInfoAdapter = null;
+    private FragmentManager mFragMan = null;
 
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
@@ -49,116 +43,52 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //TODO: handle orientation shift
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        this.mMap = googleMap;
-        mMap.setOnMapClickListener(this);
+        setContentView(R.layout.test_coordinator);
+        ((LinearLayout)findViewById(R.id.mainContainer))
+                .setOrientation(getResources().getConfiguration().orientation);
+        mFragMan = getSupportFragmentManager();
         init();
     }
 
-    @Override
-    public void onMapClick(LatLng latLng) {
-        MarkerOptions marker = new MarkerOptions()
-                .position(new LatLng(latLng.latitude, latLng.longitude))
-                .title(getResources().getString(R.string.new_pin_title));
 
-        mMap.addMarker(marker);
-    }
 
     private void init(){
-        ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map))
-                .getMapAsync(this);
-
+        CityListService.getInstance().registerContext(this);
         mPref = getSharedPreferences("prefs", MODE_PRIVATE);
         final String citiesCsv = mPref.getString(CITIES_KEY, "");
         if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
             for(String city : citiesCsv.split(";")){
                 String[] info = city.split(",");
-                savedCoords.add(new LatLng(Double.parseDouble(info[1]),
-                        Double.parseDouble(info[2])));
+                LatLng coor = new LatLng(Double.parseDouble(info[1]),
+                        Double.parseDouble(info[2]));
+                savedCities.add(new CityListItem(info[0], coor));
             }
         }
 
-        FloatingActionButton vbtn = findViewById(R.id.btnAction);
-        vbtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Bundle args = new Bundle();
-                args.putString(CITIES_KEY, citiesCsv);
-                CitiesListFragment frag = new CitiesListFragment();
-                frag.setArguments(args);
-                findViewById(R.id.viewPager).setVisibility(View.VISIBLE);
-                FragmentTransaction fragTrn = getFragmentManager().beginTransaction();
-                fragTrn.replace(R.id.viewPager, frag);
-                fragTrn.show(frag);//getFragmentManager().findFragmentById(LIST_FRAG_ID));
-                fragTrn.addToBackStack(null);
-                fragTrn.commit();
-            }
-        });
+        Log.i(TAG, "saved cities: " + savedCities.size());
 
-        initMap();
+        RecyclerView savedRec = findViewById(R.id.markerRecycler);
+        CityListItem[] arr = new CityListItem[savedCities.size()];
+        arr = savedCities.toArray(arr);
+        if(arr.length == 0){
+            arr = new CityListItem[1];
+            arr[0] = null;
+        }
+        CityListService.getInstance().addItems(arr);
+        savedRec.setLayoutManager(new LinearLayoutManager(this));
+        savedRec.setAdapter(CityListService.getInstance().getAdapter());
+
+        //add map frag
+        FragmentTransaction ft = mFragMan.beginTransaction();
+        ft.replace(R.id.testFragContainer, new MapFragment().setCities(savedCities));
+        ft.commit();
     }
 
-
-    private void initMap(){
-
-         infoWindowCities
-        CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter()
-        mMap.setInfoWindowAdapter(infoAdapter);
-        final Context context = this;
-
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(final Marker marker) {
-                LatLng coords = marker.getPosition();
-                for(LatLng savedCoords : savedCoords){
-                    if(savedCoords.latitude == coords.latitude &&
-                            savedCoords.longitude == coords.longitude ){
-                        marker.showInfoWindow();
-                        //TODO: open cities frag for this location.
-                        return true;
-                    }
-                }
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                builder.setTitle(getResources().getString(R.string.new_pin_title));
-                FrameLayout container = new FrameLayout(context);
-                container.setPadding(8, 0, 8, 0);
-                final EditText input = new EditText(context);
-                input.setHint("Enter Nickname to save for this pin");
-                input.setInputType(InputType.TYPE_CLASS_TEXT);
-                container.addView(input);
-                builder.setView(container);
-                builder.setPositiveButton(getResources().getString(R.string.ok),
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                savedCoords.add(marker.getPosition());
-                                new CityListItem(input.getText().toString(), marker.getPosition());
-                            }
-                        });
-
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dlg, int i) {
-                        dlg.cancel();
-                    }
-                });
-
-                builder.show();
-                return false;
-            }
-        });
-    }
 
     /**
      * sample:

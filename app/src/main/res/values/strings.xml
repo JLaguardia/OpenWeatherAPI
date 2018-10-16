@@ -14,6 +14,14 @@
     <string name="pin_detail_forecast">5 Day Forecast</string>
     <string name="default_details">Obtaining weather info…</string>
 
-    <string name="ok">Ok</string>
+    <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+
+    <string name="bookmark">Bookmark</string>
+
+    <string name="delete_confirm">Confirm Delete</string>
+    <string name="delete_message">Are you sure you want to delete this bookmark?</string>
+
+    <string name="city_def_label">No Areas Bookmarked</string>
+    <string name="city_def_temp">Bookmark an area by tapping on a desired location and giving it a nickname</string>
 </resources>
