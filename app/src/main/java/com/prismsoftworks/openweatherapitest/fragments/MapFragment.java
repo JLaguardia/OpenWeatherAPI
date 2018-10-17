@@ -37,8 +37,8 @@ import java.util.Set;
 public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleMap.OnMapClickListener{
     private static final String TAG = MapFragment.class.getSimpleName();
     private GoogleMap mMap;
-//    private Set<LatLng> mSavedCoords = new HashSet<>();
     private Set<CityListItem> mSavedCities = new HashSet<>();
+    private Marker mCurrentMarker = null;
 
     @Nullable
     @Override
@@ -46,7 +46,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         CityListService.getInstance().registerMapFragment(this);
         View v = inflater.inflate(R.layout.map_fragment, container, false);
         ((SupportMapFragment)getChildFragmentManager().findFragmentById(R.id.map)).getMapAsync(this);
-        //do something with v if necessary
         return v;
     }
 
@@ -69,46 +68,46 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     @Override
     public void onMapReady(GoogleMap googleMap) {
         this.mMap = googleMap;
-        initMap();
+        initMap(true);
     }
 
     @Override
     public void onMapClick(LatLng latLng) {
-        String title = getResources().getString(R.string.new_pin_title);
-        MarkerOptions marker = new MarkerOptions()
-                .position(new LatLng(latLng.latitude, latLng.longitude))
-                .title(title);
-        mMap.addMarker(marker);
-
-        CityListItem item = new CityListItem(title,
-                marker.getPosition());
-        mSavedCities = CityListService.getInstance().bookmarkCity(item);
+        if(mCurrentMarker == null) {
+            String title = getResources().getString(R.string.new_pin_title);
+            CityListItem item = new CityListItem(title, latLng);
+            item.setName(item.getCityItem().getName());
+            MarkerOptions marker = new MarkerOptions()
+                    .position(new LatLng(latLng.latitude, latLng.longitude))
+                    .title(item.getName());
+            mMap.addMarker(marker);
+            mSavedCities = CityListService.getInstance().bookmarkCity(item);
+        } else {
+            mCurrentMarker.hideInfoWindow();
+            mCurrentMarker = null;
+        }
     }
 
     public void moveCamera(LatLng coord){
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(coord, 9.0f));
-
     }
-
-//    public MapFragment setCoords(Set<LatLng> coords){
-//        this.mSavedCoords = coords;
-//        return this;
-//    }
 
     public MapFragment setCities(Set<CityListItem> cities){
         this.mSavedCities = cities;
         return this;
     }
 
-    public void refreshMap(){
+    public void refreshMap(CityListItem focusCity){
         mMap.clear();
-        initMap();
+        initMap(false);
+        if(focusCity != null) {
+            moveCamera(focusCity.getCoordinates());
+        }
     }
 
-    private void initMap(){
-//         infoWindowCities
-//        CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(this);
-//        mMap.setInfoWindowAdapter(infoAdapter);
+    private void initMap(boolean moveCamera){
+        CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(getContext(), mSavedCities);
+        mMap.setInfoWindowAdapter(infoAdapter);
         final Context context = getContext();
 
         for(CityListItem city : mSavedCities){
@@ -117,10 +116,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
             }
         }
 
-        if(mSavedCities.size() > 0){
-            CityListItem firstCity = mSavedCities.iterator().next();
-            if(firstCity != null) {
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firstCity.getCoordinates(), 9.0f));
+        if(moveCamera) {
+            if (mSavedCities.size() > 0) {
+                CityListItem firstCity = mSavedCities.iterator().next();
+                if (firstCity != null) {
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firstCity.getCoordinates(), 9.0f));
+                }
             }
         }
 
@@ -129,34 +130,50 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(final Marker marker) {
-                LatLng coords = marker.getPosition();
+                if(mCurrentMarker == null) {
+                    LatLng coords = marker.getPosition();
+                    for (CityListItem city : mSavedCities) {
+                        if (coords.equals(city.getCoordinates())) {
+                            marker.showInfoWindow();
+                            mCurrentMarker = marker;
+                            return false;
+                        }
+                    }
+                } else {
+                    mCurrentMarker.hideInfoWindow();
+                    mCurrentMarker = null;
+                }
+                return true;
+            }
+        });
+
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(final Marker marker) {
+                CityListItem chosenCity = null;
                 for(CityListItem city : mSavedCities){
-                    if(coords.equals(city.getCoordinates())){
-                        marker.showInfoWindow();
-                        //TODO open cities frag for this location
+                    if(marker.getPosition().equals(city.getCoordinates())){
+                        chosenCity = city;
                     }
                 }
-
                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                 builder.setTitle(getResources().getString(R.string.new_pin_title));
                 FrameLayout container = new FrameLayout(context);
                 container.setPadding(12, 0, 12, 0);
                 final EditText input = new EditText(context);
-                input.setHint("Enter Nickname to save for this pin");
+                input.setHint(chosenCity.getName());
                 input.setInputType(InputType.TYPE_CLASS_TEXT);
                 container.addView(input);
                 builder.setView(container);
-                builder.setPositiveButton(getResources().getString(R.string.bookmark),
+                builder.setPositiveButton(getResources().getString(R.string.ok),
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 marker.setTitle(input.getText().toString());
-//                                mSavedCoords.add(marker.getPosition());
                                 marker.showInfoWindow();
                                 CityListItem item = new CityListItem(input.getText().toString(),
                                         marker.getPosition());
                                 CityListService.getInstance().bookmarkCity(item);
-                                mSavedCities.add(item);
                             }
                         });
 
@@ -168,7 +185,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                 });
 
                 builder.show();
-                return false;
+            }
+        });
+
+        mMap.setOnInfoWindowLongClickListener(new GoogleMap.OnInfoWindowLongClickListener() {
+            @Override
+            public void onInfoWindowLongClick(Marker marker) {
+                for(CityListItem city : mSavedCities){
+                    if(marker.getPosition().equals(city.getCoordinates())){
+                        CityListService.getInstance().showDetails(city);
+                        break;
+                    }
+                }
             }
         });
     }

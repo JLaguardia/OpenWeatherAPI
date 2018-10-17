@@ -2,21 +2,22 @@ package com.prismsoftworks.openweatherapitest.service;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.support.v4.app.Fragment;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.MainActivity;
-import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityListAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
-import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class CityListService {
@@ -24,10 +25,11 @@ public class CityListService {
     private static final String PREF_NAME = "prefs";
     private static final String CITIES_KEY = "storedCities";
     private List<CityListItem> list;
-    private CityListAdapter adapter;
+    private CityListAdapter mAdapter;
     private Context mContext;
     private SharedPreferences mPrefs;
     private MapFragment mMapFrag;
+    private Map<String, Bitmap> cachedIcons = new HashMap<>();
 
     public static CityListService getInstance(){
         if(instance == null){
@@ -107,12 +109,14 @@ public class CityListService {
         list.addAll(toAdd);
 
         if(list.size() == 1 && list.get(0) == null){
+            mAdapter = null;
             ((MainActivity)mContext).clearRecycler();
         }
 
         if(mMapFrag != null) {
-            mMapFrag.setCities(new HashSet<>(list)).refreshMap();
+            mMapFrag.setCities(new HashSet<>(list)).refreshMap(list.get(list.size()-1));
         }
+
         getAdapter().notifyItemRangeChanged(0, list.size());
         getAdapter().notifyDataSetChanged();
     }
@@ -122,10 +126,6 @@ public class CityListService {
         invalidatePreferences();
 
         return new HashSet<>(list);
-    }
-
-    public void setChosenUnit(UnitType unit){
-        getAdapter().setChosenUnit(unit);
     }
 
     private void invalidatePreferences(){
@@ -151,32 +151,49 @@ public class CityListService {
 
     public void deleteCity(CityListItem city){
         list.remove(city);
-        mMapFrag.setCities(new HashSet<>(list)).refreshMap();
-        Log.e("CITY LIST", "size is " + list.size());
         if(list.size() == 0){
+
             CityListItem[] arr = {null};
             addItems(arr);
         }
+        getAdapter().notifyDataSetChanged();
+        mMapFrag.setCities(new HashSet<>(list)).refreshMap(null);
 
         invalidatePreferences();
     }
 
     public CityListAdapter getAdapter() {
-        if(adapter == null){
-            adapter = new CityListAdapter();
-            adapter.setItemList(list);
+        if(mAdapter == null){
+            mAdapter = new CityListAdapter();
+            mAdapter.setItemList(list);
         }
 
-        return adapter;
+        return mAdapter;
     }
 
-//    public void bookmarkCity(CityListItem){
-//
-//    }
-
-
-    public void setAdapter(CityListAdapter adapter) {
-        this.adapter = adapter;
-        this.adapter.setItemList(list);
+    public Bitmap getCachedIcon(String key){
+        return cachedIcons.get(key);
     }
+
+    public void registerIcon(String key, Bitmap bmp){
+        cachedIcons.put(key, bmp);
+    }
+
+    public void setActiveFragment(Fragment frag){
+        ((MainActivity)mContext).replaceFrag(frag);
+    }
+
+    public String getTemperatureString(CityListItem item){
+        switch (item.getChosenUnitType()){
+            case KELVIN:
+                return item.getCityItem().getTemperature().getTemperature() + "°K";
+            case IMPERIAL:
+                return item.getCityItem().getTemperature().getTemperature() + "°F";
+            case METRIC:
+                return item.getCityItem().getTemperature().getTemperature() + "°C";
+        }
+
+        return item.getCityItem().getTemperature().getTemperature() + "°?";
+    }
+
 }

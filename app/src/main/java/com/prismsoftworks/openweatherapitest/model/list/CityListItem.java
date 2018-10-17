@@ -9,14 +9,16 @@ import com.prismsoftworks.openweatherapitest.model.city.Weather;
 import com.prismsoftworks.openweatherapitest.model.city.WrapperObj;
 import com.prismsoftworks.openweatherapitest.task.PullTask;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CityListItem {
+public class CityListItem implements Serializable{
     private String name;
     private LatLng coordinates;
     private ListItemState state = ListItemState.INSERTED;
     private CityItem cityItem;
+    private UnitType chosenUnitType = UnitType.IMPERIAL;
 
     public CityListItem(){}
 
@@ -59,5 +61,13 @@ public class CityListItem {
         }
 
         return cityItem;
+    }
+
+    public UnitType getChosenUnitType() {
+        return chosenUnitType;
+    }
+
+    public void setChosenUnitType(UnitType chosenUnitType) {
+        this.chosenUnitType = chosenUnitType;
     }
 }

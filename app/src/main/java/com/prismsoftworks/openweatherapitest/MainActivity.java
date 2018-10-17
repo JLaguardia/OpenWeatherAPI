@@ -10,35 +10,31 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.widget.LinearLayout;
 
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
-import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MainActivity extends FragmentActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private GoogleMap mMap;
     private SharedPreferences mPref;
     public static final String CITIES_KEY = "storedCities";
     private Set<CityListItem> savedCities = new HashSet<>();
-    private CityItemInfoAdapter mInfoAdapter = null;
     private FragmentManager mFragMan = null;
-    private MapFragment mapFragment;
-    private CityDetailFragment cityDetailFragment;
+    private MapFragment mMapFragment;
+    private CityDetailFragment mCityDetailFragment;
     private boolean appInit = false;
+    private final String MAP_FRAG_KEY = "mapFrag";
+    private final String DETAIL_FRAG_KEY = "detailFrag";
 
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
@@ -49,15 +45,21 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mFragMan = getSupportFragmentManager();
+        if(savedInstanceState != null){
+            mCityDetailFragment = (CityDetailFragment) mFragMan.getFragment(savedInstanceState, DETAIL_FRAG_KEY);
+            CityListService.getInstance().registerContext(this);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        setContentView(R.layout.test_coordinator);
+        CityListService.getInstance().clearContext();
+        setContentView(R.layout.activity_main);
         CityListService.getInstance().registerContext(this);
-        ((LinearLayout)findViewById(R.id.mainContainer))
-                .setOrientation(getResources().getConfiguration().orientation);
+        ((LinearLayout)findViewById(R.id.mainContainer)).setOrientation(getResources()
+                                                                .getConfiguration().orientation);
         mFragMan = getSupportFragmentManager();
         init();
     }
@@ -81,13 +83,23 @@ public class MainActivity extends FragmentActivity {
             arr = new CityListItem[1];
             arr[0] = null;
         }
+
+        //add map frag
+        mMapFragment = new MapFragment().setCities(savedCities);
+
+        if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
+            setBarWeight(0);
+            mCityDetailFragment = new CityDetailFragment().setCityItemFromListItem(
+                    mCityDetailFragment.getCityItem());
+            replaceFrag(mCityDetailFragment);
+        } else {
+            setBarWeight(1);
+            replaceFrag(mMapFragment);
+        }
+
         CityListService.getInstance().addItems(arr);
         savedRec.setLayoutManager(new LinearLayoutManager(this));
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
-
-        //add map frag
-        mapFragment = new MapFragment().setCities(savedCities);
-        replaceFrag(mapFragment);
     }
 
     @Override
@@ -96,7 +108,16 @@ public class MainActivity extends FragmentActivity {
         CityListService.getInstance().clearContext();
     }
 
-    private void replaceFrag(Fragment frag){
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
+            mFragMan.putFragment(outState, DETAIL_FRAG_KEY, mCityDetailFragment);
+        }
+
+    }
+
+    public void replaceFrag(Fragment frag){
         FragmentTransaction ft = mFragMan.beginTransaction();
         ft.replace(R.id.testFragContainer, frag, "test");
         if(appInit) {
@@ -108,7 +129,6 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void setBarWeight(int weight){
-        Log.i(TAG, "setting bar weight to " + weight);
         AppBarLayout bar = findViewById(R.id.main_appbar);
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) bar.getLayoutParams();
         lp.weight = weight;
@@ -118,42 +138,43 @@ public class MainActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         if(mFragMan.getBackStackEntryCount() > 0) {
-            if(mapFragment != null){
+            if(mMapFragment.isAdded()){
                 setBarWeight(0);
             } else {
                 setBarWeight(1);
             }
 
             mFragMan.popBackStackImmediate();
+            Log.e(TAG, "backstack popped");
         } else {
             super.onBackPressed();
         }
     }
 
     public void showCityDetails(CityListItem city){
-        if(cityDetailFragment == null){
-            cityDetailFragment = new CityDetailFragment();
+        if(mCityDetailFragment == null){
+            mCityDetailFragment = new CityDetailFragment();
         }
 
-        cityDetailFragment.setCityItemFromListItem(city);
+        mCityDetailFragment.setCityItemFromListItem(city);
         setBarWeight(0);
-        replaceFrag(cityDetailFragment);
-        mapFragment = null;
+        replaceFrag(mCityDetailFragment);
     }
 
     public void showMapScreen(){
-        if(mapFragment == null){
-            mapFragment = new MapFragment().setCities(savedCities);
+        if(mMapFragment == null){
+            mMapFragment = new MapFragment().setCities(savedCities);
         }
 
         setBarWeight(1);
-        replaceFrag(mapFragment);
-        cityDetailFragment = null;
+        replaceFrag(mMapFragment);
     }
 
     public void clearRecycler(){
-        RecyclerView savedRec = findViewById(R.id.markerRecycler);
-        savedRec.removeAllViewsInLayout();
+        RecyclerView rec = findViewById(R.id.markerRecycler);
+        rec.removeAllViewsInLayout();
+        rec.setAdapter(null);
+        rec.setAdapter(CityListService.getInstance().getAdapter());
     }
 
 //    public boolean onTouchEvent(MotionEvent me){

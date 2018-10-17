@@ -36,8 +36,6 @@ import java.util.Map;
 
 public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
     private List<CityListItem> items;
-    private Map<String, Bitmap> cachedIcons = new HashMap<>();
-    private UnitType chosenUnit = UnitType.IMPERIAL;
 
     public CityListAdapter(List<CityListItem> items) {
         this.items = items;
@@ -121,7 +119,6 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
                         String chosenName = input.getText().toString();
                         item.setName(chosenName);
                         CityListService.getInstance().addItems(item);
-//                        notifyDataSetChanged();
                     }
                 });
 
@@ -137,17 +134,16 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
             }
         });
 
-        String temperatureText = item.getCityItem().getTemperature().getTemperature() + getUnitSymbol();//"°F";
+        String temperatureText = CityListService.getInstance().getTemperatureString(item);//"°F";
         holder.lblCurrent.setText(temperatureText);
         Weather weather = item.getCityItem().getWeather()[0];
         String weatherInfo = weather.getLabel() + " : " +  weather.getDescription();
         holder.lblInfo.setText(weatherInfo);
         String iconCode = item.getCityItem().getWeather()[0].getIcon();
-        Bitmap bmpIcon = cachedIcons.get(iconCode);
+        Bitmap bmpIcon = CityListService.getInstance().getCachedIcon(iconCode);
         if(bmpIcon == null){
-            PullTask.getInstance().addImageView(holder.getItemId(), holder.imgWeatherIcon);
-            bmpIcon = PullTask.getInstance().getWeatherIconBitmap(holder.getItemId(), iconCode);
-            cachedIcons.put(iconCode, bmpIcon);
+            bmpIcon = PullTask.getInstance().getWeatherIconBitmap(iconCode);
+            CityListService.getInstance().registerIcon(iconCode, bmpIcon);
         }
 
         holder.imgWeatherIcon.setImageBitmap(bmpIcon);
@@ -170,6 +166,7 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
+                                //TODO: fix the null issue
                                 CityListService.getInstance().deleteCity(item);
                             }
                         });
@@ -187,44 +184,27 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
 
     }
 
-    private SimpleOnGestureListener doubleTapListener(final CityListItem item){
-        return new SimpleOnGestureListener(){
-            @Override
-            public boolean onSingleTapUp(MotionEvent e) {
-                Log.e("SINGLE TAP", "single tap deteccted");
-                CityListService.getInstance().showDetails(item);
-                return true;
-            }
-
-            @Override
-            public boolean onDoubleTap(MotionEvent e) {
-                Log.e("double TAP", "single tap deteccted");
-                CityListService.getInstance().moveCamera(item.getCoordinates());
-                return true;
-            }
-        };
-    }
+//    private SimpleOnGestureListener doubleTapListener(final CityListItem item){
+//        return new SimpleOnGestureListener(){
+//            @Override
+//            public boolean onSingleTapUp(MotionEvent e) {
+//                Log.e("SINGLE TAP", "single tap deteccted");
+//                CityListService.getInstance().showDetails(item);
+//                return true;
+//            }
+//
+//            @Override
+//            public boolean onDoubleTap(MotionEvent e) {
+//                Log.e("double TAP", "single tap deteccted");
+//                CityListService.getInstance().moveCamera(item.getCoordinates());
+//                return true;
+//            }
+//        };
+//    }
 
     @Override
     public int getItemCount() {
         return items.size();
-    }
-
-    public void setChosenUnit(UnitType unit){
-        this.chosenUnit = unit;
-    }
-
-    private String getUnitSymbol(){
-        switch (chosenUnit){
-            case KELVIN:
-                return "°K";
-            case IMPERIAL:
-                return "°F";
-            case METRIC:
-                return "°C";
-        }
-
-        return "";
     }
 
     public void setItemList(List<CityListItem> list){
