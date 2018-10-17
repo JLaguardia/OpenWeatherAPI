@@ -3,17 +3,30 @@ package com.prismsoftworks.openweatherapitest.service;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+<<<<<<< HEAD
 import android.support.v4.app.Fragment;
+=======
+import android.graphics.BitmapFactory;
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.adapter.CityListAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
+<<<<<<< HEAD
+=======
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
+import com.prismsoftworks.openweatherapitest.model.city.UnitType;
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 
 import java.util.ArrayList;
+<<<<<<< HEAD
+=======
+import java.util.Arrays;
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -179,6 +192,7 @@ public class CityListService {
         cachedIcons.put(key, bmp);
     }
 
+<<<<<<< HEAD
     public void setActiveFragment(Fragment frag){
         ((MainActivity)mContext).replaceFrag(frag);
     }
@@ -193,6 +207,26 @@ public class CityListService {
                 return item.getCityItem().getTemperature().getTemperature() + "°C";
         }
 
+=======
+    public Bitmap getCachedIcon(String key){
+        return cachedIcons.get(key);
+    }
+
+    public void registerIcon(String key, Bitmap bmp){
+        cachedIcons.put(key, bmp);
+    }
+
+    public String getTemperatureString(CityListItem item){
+        switch (item.getChosenUnitType()){
+            case KELVIN:
+                return item.getCityItem().getTemperature().getTemperature() + "°K";
+            case IMPERIAL:
+                return item.getCityItem().getTemperature().getTemperature() + "°F";
+            case METRIC:
+                return item.getCityItem().getTemperature().getTemperature() + "°C";
+        }
+
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
         return item.getCityItem().getTemperature().getTemperature() + "°?";
     }
 

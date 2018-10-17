@@ -105,7 +105,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         }
     }
 
+<<<<<<< HEAD
     private void initMap(boolean moveCamera){
+=======
+    private void initMap(){
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
         CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(getContext(), mSavedCities);
         mMap.setInfoWindowAdapter(infoAdapter);
         final Context context = getContext();
@@ -147,6 +151,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
             }
         });
 
+<<<<<<< HEAD
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(final Marker marker) {
@@ -197,6 +202,40 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                         break;
                     }
                 }
+=======
+//                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//                builder.setTitle(getResources().getString(R.string.new_pin_title));
+//                FrameLayout container = new FrameLayout(context);
+//                container.setPadding(12, 0, 12, 0);
+//                final EditText input = new EditText(context);
+//                input.setHint("Enter Nickname to save for this pin");
+//                input.setInputType(InputType.TYPE_CLASS_TEXT);
+//                container.addView(input);
+//                builder.setView(container);
+//                builder.setPositiveButton(getResources().getString(R.string.bookmark),
+//                        new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialogInterface, int i) {
+//                                marker.setTitle(input.getText().toString());
+////                                mSavedCoords.add(marker.getPosition());
+//                                marker.showInfoWindow();
+//                                CityListItem item = new CityListItem(input.getText().toString(),
+//                                        marker.getPosition());
+//                                CityListService.getInstance().bookmarkCity(item);
+//                                mSavedCities.add(item);
+//                            }
+//                        });
+//
+//                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dlg, int i) {
+//                        dlg.cancel();
+//                    }
+//                });
+//
+//                builder.show();
+                return false;
+>>>>>>> 670001428c1c092d81594e1a62fd44fcbae38465
             }
         });
     }
