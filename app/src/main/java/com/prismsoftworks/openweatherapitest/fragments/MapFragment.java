@@ -106,9 +106,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     }
 
     private void initMap(){
-//         infoWindowCities
-//        CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(this);
-//        mMap.setInfoWindowAdapter(infoAdapter);
+        CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(getContext(), mSavedCities);
+        mMap.setInfoWindowAdapter(infoAdapter);
         final Context context = getContext();
 
         for(CityListItem city : mSavedCities){
@@ -137,37 +136,37 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                     }
                 }
 
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                builder.setTitle(getResources().getString(R.string.new_pin_title));
-                FrameLayout container = new FrameLayout(context);
-                container.setPadding(12, 0, 12, 0);
-                final EditText input = new EditText(context);
-                input.setHint("Enter Nickname to save for this pin");
-                input.setInputType(InputType.TYPE_CLASS_TEXT);
-                container.addView(input);
-                builder.setView(container);
-                builder.setPositiveButton(getResources().getString(R.string.bookmark),
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                marker.setTitle(input.getText().toString());
-//                                mSavedCoords.add(marker.getPosition());
-                                marker.showInfoWindow();
-                                CityListItem item = new CityListItem(input.getText().toString(),
-                                        marker.getPosition());
-                                CityListService.getInstance().bookmarkCity(item);
-                                mSavedCities.add(item);
-                            }
-                        });
-
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dlg, int i) {
-                        dlg.cancel();
-                    }
-                });
-
-                builder.show();
+//                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//                builder.setTitle(getResources().getString(R.string.new_pin_title));
+//                FrameLayout container = new FrameLayout(context);
+//                container.setPadding(12, 0, 12, 0);
+//                final EditText input = new EditText(context);
+//                input.setHint("Enter Nickname to save for this pin");
+//                input.setInputType(InputType.TYPE_CLASS_TEXT);
+//                container.addView(input);
+//                builder.setView(container);
+//                builder.setPositiveButton(getResources().getString(R.string.bookmark),
+//                        new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialogInterface, int i) {
+//                                marker.setTitle(input.getText().toString());
+////                                mSavedCoords.add(marker.getPosition());
+//                                marker.showInfoWindow();
+//                                CityListItem item = new CityListItem(input.getText().toString(),
+//                                        marker.getPosition());
+//                                CityListService.getInstance().bookmarkCity(item);
+//                                mSavedCities.add(item);
+//                            }
+//                        });
+//
+//                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dlg, int i) {
+//                        dlg.cancel();
+//                    }
+//                });
+//
+//                builder.show();
                 return false;
             }
         });

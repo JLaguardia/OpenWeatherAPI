@@ -33,14 +33,13 @@ import java.util.concurrent.ExecutionException;
 public class PullTask {
     //http://api.openweathermap.org/data/2.5/find?q=%s&units=%s&appid=%s
     //icon: "http://openweathermap.org/img/w/{icon_id}.png"
-    private final String ICO_URL_FMT = "http://openweathermap.org/img/w/%s.png";
-    private final String URL_FMT = "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=%s&appid=%s";
-    private final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";
-    private final String JSON_KEY = "jsonstr";
-    private final String IMG_KEY = "imgico";
+    private static final String ICO_URL_FMT = "http://openweathermap.org/img/w/%s.png";
+    private static final String URL_FMT = "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=%s&appid=%s";
+    private static final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";
+    private static final String JSON_KEY = "jsonstr";
+    private static final String IMG_KEY = "imgico";
     private static PullTask instance = null;
-    private List<Worker> workerList = new ArrayList<>();
-    private Map<Long, ImageView> imageViews = new HashMap<>();
+    private static List<Worker> workerList = new ArrayList<>();
 
     public static PullTask getInstance(){
         if(instance == null){
@@ -66,19 +65,15 @@ public class PullTask {
         return res.toString();
     }
 
-    public Bitmap getWeatherIconBitmap(Long id, String iconCode){
-        Bitmap res;
+    public Bitmap getWeatherIconBitmap(String iconCode){
+        Bitmap res = null;
         String formattedUrl = String.format(ICO_URL_FMT, iconCode);
         byte[] bytes = fireJob(formattedUrl, IMG_KEY).getByteArray(IMG_KEY);
-        res = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-        ImageView img = imageViews.get(id);
-        img.setImageBitmap(res);
-        imageViews.remove(img);
-        return res;
-    }
+        if(bytes != null) {
+            res = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        }
 
-    public void addImageView(Long id, ImageView img){
-        imageViews.put(id, img);
+        return res;
     }
 
     private Bundle fireJob(String... url){
@@ -99,7 +94,7 @@ public class PullTask {
         return workerList;
     }
 
-    private class Worker extends AsyncTask<String, Void, Bundle>{
+    private static class Worker extends AsyncTask<String, Void, Bundle>{
         @Override
         protected Bundle doInBackground(String... params) {
             Bundle response = new Bundle();

@@ -17,6 +17,7 @@ public class CityListItem {
     private LatLng coordinates;
     private ListItemState state = ListItemState.INSERTED;
     private CityItem cityItem;
+    private UnitType chosenUnitType = UnitType.IMPERIAL;
 
     public CityListItem(){}
 
@@ -59,5 +60,13 @@ public class CityListItem {
         }
 
         return cityItem;
+    }
+
+    public UnitType getChosenUnitType() {
+        return chosenUnitType;
+    }
+
+    public void setChosenUnitType(UnitType chosenUnitType) {
+        this.chosenUnitType = chosenUnitType;
     }
 }

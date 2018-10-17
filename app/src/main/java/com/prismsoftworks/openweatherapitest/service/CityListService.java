@@ -2,6 +2,8 @@ package com.prismsoftworks.openweatherapitest.service;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -9,14 +11,17 @@ import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityListAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class CityListService {
@@ -28,6 +33,7 @@ public class CityListService {
     private Context mContext;
     private SharedPreferences mPrefs;
     private MapFragment mMapFrag;
+    private Map<String, Bitmap> cachedIcons = new HashMap<>();
 
     public static CityListService getInstance(){
         if(instance == null){
@@ -124,10 +130,6 @@ public class CityListService {
         return new HashSet<>(list);
     }
 
-    public void setChosenUnit(UnitType unit){
-        getAdapter().setChosenUnit(unit);
-    }
-
     private void invalidatePreferences(){
         StringBuilder citiescsv = new StringBuilder();
         for(CityListItem item : list){
@@ -170,13 +172,25 @@ public class CityListService {
         return adapter;
     }
 
-//    public void bookmarkCity(CityListItem){
-//
-//    }
-
-
-    public void setAdapter(CityListAdapter adapter) {
-        this.adapter = adapter;
-        this.adapter.setItemList(list);
+    public Bitmap getCachedIcon(String key){
+        return cachedIcons.get(key);
     }
+
+    public void registerIcon(String key, Bitmap bmp){
+        cachedIcons.put(key, bmp);
+    }
+
+    public String getTemperatureString(CityListItem item){
+        switch (item.getChosenUnitType()){
+            case KELVIN:
+                return item.getCityItem().getTemperature().getTemperature() + "°K";
+            case IMPERIAL:
+                return item.getCityItem().getTemperature().getTemperature() + "°F";
+            case METRIC:
+                return item.getCityItem().getTemperature().getTemperature() + "°C";
+        }
+
+        return item.getCityItem().getTemperature().getTemperature() + "°?";
+    }
+
 }

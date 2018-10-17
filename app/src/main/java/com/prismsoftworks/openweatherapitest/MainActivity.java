@@ -10,22 +10,18 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.widget.LinearLayout;
 
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
-import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MainActivity extends FragmentActivity {
@@ -54,7 +50,7 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        setContentView(R.layout.test_coordinator);
+        setContentView(R.layout.activity_main);
         CityListService.getInstance().registerContext(this);
         ((LinearLayout)findViewById(R.id.mainContainer))
                 .setOrientation(getResources().getConfiguration().orientation);
