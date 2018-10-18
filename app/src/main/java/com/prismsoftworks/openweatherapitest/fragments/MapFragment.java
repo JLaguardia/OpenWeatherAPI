@@ -43,7 +43,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mSavedCities = CityListService.getInstance().registerMapFragment(this);
+        CityListService.getInstance().registerMapFragment(this);
         View v = inflater.inflate(R.layout.map_fragment, container, false);
         ((SupportMapFragment)getChildFragmentManager().findFragmentById(R.id.map)).getMapAsync(this);
         return v;
@@ -89,7 +89,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     }
 
     public void moveCamera(LatLng coord){
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(coord, 9.0f));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(coord));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
     }
 
 //    public MapFragment setCities(Set<CityListItem> cities){
@@ -99,6 +100,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
 
     public void refreshMap(CityListItem focusCity){
         mMap.clear();
+        mSavedCities.clear();
         initMap(false);
         if(focusCity != null) {
             moveCamera(focusCity.getCoordinates());
@@ -106,6 +108,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     }
 
     private void initMap(boolean moveCamera){
+        mSavedCities = CityListService.getInstance().getCities();
         CityItemInfoAdapter infoAdapter = new CityItemInfoAdapter(getContext(), mSavedCities);
         mMap.setInfoWindowAdapter(infoAdapter);
         final Context context = getContext();
@@ -177,7 +180,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                             }
                         });
 
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                builder.setNegativeButton(getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dlg, int i) {
                         dlg.cancel();

@@ -1,7 +1,9 @@
 package com.prismsoftworks.openweatherapitest;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -9,7 +11,10 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.LinearLayout;
 
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
@@ -19,12 +24,15 @@ import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
+import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
+import com.prismsoftworks.openweatherapitest.object.CityViewHolder;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
+import com.prismsoftworks.openweatherapitest.service.RecyclerTouchHelper;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends FragmentActivity implements RecyclerTouchHelper.RecyclerItemTouchHelperListener{
     private static final String TAG = MainActivity.class.getSimpleName();
     public  static final String CITIES_KEY = "storedCities";
     private final String DETAIL_FRAG_KEY = "detailFrag";
@@ -103,6 +111,11 @@ public class MainActivity extends FragmentActivity {
 
         CityListService.getInstance().addItems(arr);
         savedRec.setLayoutManager(new LinearLayoutManager(this));
+
+
+        ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
+                new RecyclerTouchHelper(0, ItemTouchHelper.LEFT , this);
+        new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(savedRec);
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
     }
 
@@ -135,7 +148,6 @@ public class MainActivity extends FragmentActivity {
         ft.commit();
         appInit = true;
         activeFragTag = frag.getTag();
-        Log.e(TAG, "frag change. set active id to " + activeFragTag);
     }
 
     private void setBarWeight(int weight){
@@ -168,6 +180,7 @@ public class MainActivity extends FragmentActivity {
 
         mCityDetailFragment.setCityItemFromListItem(city);
         setBarWeight(0);
+        replaceFrag(mCityDetailFragment, "detail");
     }
 
 //    public void showMapScreen(){
@@ -186,9 +199,29 @@ public class MainActivity extends FragmentActivity {
         rec.setAdapter(CityListService.getInstance().getAdapter());
     }
 
-//    public boolean onTouchEvent(MotionEvent me){
-//        return true;
-//    }
+    @Override
+    public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
+        // backup of removed item for undo purpose
+        final CityListItem deletedItem = CityListService.getInstance().getList().get(((CityViewHolder) viewHolder).itemIndex);
+        String itemName = deletedItem.getName() + " ";
+
+        // remove the item from recycler view
+        deletedItem.setState(ListItemState.DELETED);
+        CityListService.getInstance().addItems(deletedItem);
+        // showing snack bar with Undo option
+            Snackbar snackbar = Snackbar
+                    .make(findViewById(R.id.mainContainer), itemName + getResources().getText(R.string.deleted), Snackbar.LENGTH_LONG);
+            snackbar.setAction(getResources().getString(R.string.undo), new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    deletedItem.setState(ListItemState.INSERTED);
+                    CityListService.getInstance().addItems(deletedItem);
+                }
+            });
+            snackbar.setActionTextColor(Color.YELLOW);
+            snackbar.show();
+    }
+}
 
     /**
      * sample:
@@ -237,5 +270,3 @@ public class MainActivity extends FragmentActivity {
      }
      */
 
-
-}

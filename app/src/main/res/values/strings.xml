@@ -33,7 +33,10 @@
     <!-- imported strings -->
     <string name="city">Location</string>
     <string name="save">Save</string>
-    <string name="delete">Delete</string>
+    <string name="delete">DELETE</string>
+    <string name="deleted"> has been deleted</string>
+    <string name="undo">Undo</string>
+    <string name="favorite">SET PREFERRED</string>
     <string name="current_forecast_label">Current Forecast</string>
     <string name="temperature_label">Temperature: </string>
     <string name="humidity_label">Humidity: </string>

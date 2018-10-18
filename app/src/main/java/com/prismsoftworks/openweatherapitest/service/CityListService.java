@@ -31,7 +31,7 @@ public class CityListService {
     private MapFragment mMapFrag;
     private Map<String, Bitmap> cachedIcons = new HashMap<>();
 
-    public static CityListService getInstance(){
+    public static synchronized CityListService getInstance(){
         if(instance == null){
             instance = new CityListService();
         }
@@ -48,8 +48,11 @@ public class CityListService {
         mPrefs = mContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    public Set<CityListItem> registerMapFragment(MapFragment fragment){
+    public void registerMapFragment(MapFragment fragment){
         this.mMapFrag = fragment;
+    }
+
+    public Set<CityListItem> getCities(){
         return new HashSet<>(list);
     }
 
@@ -90,7 +93,8 @@ public class CityListService {
                     toRemove.add(null);
                 }
 
-                if(saved != null && item.getCoordinates().equals(saved.getCoordinates())){
+                if(saved != null && item.getCoordinates().equals(saved.getCoordinates()) &&
+                        item.getState() != ListItemState.DELETED){
                     item.setState(ListItemState.UPDATED);
                 }
             }
@@ -103,13 +107,20 @@ public class CityListService {
                     toAdd.add(item);
                     toRemove.add(item);
                     break;
+                case DELETED:
+                    toRemove.add(item);
+                    break;
             }
         }
 
         list.removeAll(toRemove);
         list.addAll(toAdd);
 
-        if(list.size() == 1 && list.get(0) == null){
+        if((list.size() == 0) || (list.size() == 1 && list.get(0) == null)){
+            if(list.size() == 0){
+                list.add(null);
+            }
+
             mAdapter = null;
             ((MainActivity)mContext).clearRecycler();
         }
@@ -121,12 +132,11 @@ public class CityListService {
 
         getAdapter().notifyItemRangeChanged(0, list.size());
         getAdapter().notifyDataSetChanged();
+        invalidatePreferences();
     }
 
     public Set<CityListItem> bookmarkCity(CityListItem city){
         addItems(city);
-        invalidatePreferences();
-
         return new HashSet<>(list);
     }
 

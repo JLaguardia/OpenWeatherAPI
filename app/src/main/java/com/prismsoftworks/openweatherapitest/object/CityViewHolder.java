@@ -10,12 +10,14 @@ import android.widget.TextView;
 import com.prismsoftworks.openweatherapitest.R;
 
 public class CityViewHolder extends RecyclerView.ViewHolder{
+    public int itemIndex;
     public TextView lblName;
     public TextView lblCurrent;
     public TextView lblInfo;
-    public ImageButton btnDelete;
     public ImageView imgWeatherIcon;
     public ViewGroup container;
+    public ViewGroup itemBg;
+    public ViewGroup itemFg;
 
     public CityViewHolder(View itemView) {
         super(itemView);
@@ -23,11 +25,12 @@ public class CityViewHolder extends RecyclerView.ViewHolder{
     }
 
     private void init(View v){
+        container = v.findViewById(R.id.cityDetailContainer);
+        itemBg = v.findViewById(R.id.itemBg);
+        itemFg = v.findViewById(R.id.itemFg);
         lblName = v.findViewById(R.id.lblCityLabel);
         lblCurrent = v.findViewById(R.id.lblCurrent);
         lblInfo = v.findViewById(R.id.lblInfo);
-        btnDelete = v.findViewById(R.id.btnDelete);
         imgWeatherIcon = v.findViewById(R.id.imgWeatherIcon);
-        container = v.findViewById(R.id.cityDetailContainer);
     }
 }
