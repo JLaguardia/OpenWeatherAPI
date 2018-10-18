@@ -43,7 +43,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        CityListService.getInstance().registerMapFragment(this);
+        mSavedCities = CityListService.getInstance().registerMapFragment(this);
         View v = inflater.inflate(R.layout.map_fragment, container, false);
         ((SupportMapFragment)getChildFragmentManager().findFragmentById(R.id.map)).getMapAsync(this);
         return v;
@@ -92,10 +92,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(coord, 9.0f));
     }
 
-    public MapFragment setCities(Set<CityListItem> cities){
-        this.mSavedCities = cities;
-        return this;
-    }
+//    public MapFragment setCities(Set<CityListItem> cities){
+//        this.mSavedCities = cities;
+//        return this;
+//    }
 
     public void refreshMap(CityListItem focusCity){
         mMap.clear();

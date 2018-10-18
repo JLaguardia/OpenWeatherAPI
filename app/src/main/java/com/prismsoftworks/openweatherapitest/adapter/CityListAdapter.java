@@ -152,33 +152,34 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
         holder.btnDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Resources res = view.getResources();
-                AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
-                builder.setTitle(res.getString(R.string.delete_confirm));
-                LinearLayout container = new LinearLayout(view.getContext());
-                container.setPadding(12, 0, 12, 0);
-                TextView tv = new TextView(view.getContext());
-                tv.setGravity(Gravity.CENTER);
-                tv.setText(res.getText(R.string.delete_message));
-                container.addView(tv);
-                builder.setView(container);
-                builder.setPositiveButton(res.getString(R.string.ok),
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                //TODO: fix the null issue
-                                CityListService.getInstance().deleteCity(item);
-                            }
-                        });
+                CityListService.getInstance().deleteCity(item);
 
-                builder.setNegativeButton(res.getString(R.string.cancel), new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dlg, int i) {
-                        dlg.cancel();
-                    }
-                });
-
-                builder.show();
+//                Resources res = view.getResources();
+//                AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+//                builder.setTitle(res.getString(R.string.delete_confirm));
+//                LinearLayout container = new LinearLayout(view.getContext());
+//                container.setPadding(12, 0, 12, 0);
+//                TextView tv = new TextView(view.getContext());
+//                tv.setGravity(Gravity.CENTER);
+//                tv.setText(res.getText(R.string.delete_message));
+//                container.addView(tv);
+//                builder.setView(container);
+//                builder.setPositiveButton(res.getString(R.string.ok),
+//                        new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialogInterface, int i) {
+//                                CityListService.getInstance().deleteCity(item);
+//                            }
+//                        });
+//
+//                builder.setNegativeButton(res.getString(R.string.cancel), new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dlg, int i) {
+//                        dlg.cancel();
+//                    }
+//                });
+//
+//                builder.show();
             }
         });
 

@@ -26,15 +26,16 @@ import java.util.Set;
 
 public class MainActivity extends FragmentActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    public  static final String CITIES_KEY = "storedCities";
+    private final String DETAIL_FRAG_KEY = "detailFrag";
+    private final String FRAGTAG_KEY = "activeFragId";
     private SharedPreferences mPref;
-    public static final String CITIES_KEY = "storedCities";
     private Set<CityListItem> savedCities = new HashSet<>();
     private FragmentManager mFragMan = null;
     private MapFragment mMapFragment;
     private CityDetailFragment mCityDetailFragment;
     private boolean appInit = false;
-    private final String MAP_FRAG_KEY = "mapFrag";
-    private final String DETAIL_FRAG_KEY = "detailFrag";
+    private String activeFragTag = "";
 
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
@@ -48,6 +49,7 @@ public class MainActivity extends FragmentActivity {
         mFragMan = getSupportFragmentManager();
         if(savedInstanceState != null){
             mCityDetailFragment = (CityDetailFragment) mFragMan.getFragment(savedInstanceState, DETAIL_FRAG_KEY);
+            activeFragTag = savedInstanceState.getString(FRAGTAG_KEY);
             CityListService.getInstance().registerContext(this);
         }
     }
@@ -85,21 +87,27 @@ public class MainActivity extends FragmentActivity {
         }
 
         //add map frag
-        mMapFragment = new MapFragment().setCities(savedCities);
+        mMapFragment = new MapFragment();//.setCities(savedCities);
 
-        if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
+        if(isCurrentFragment(mCityDetailFragment)) {
             setBarWeight(0);
+            Log.e(TAG, "setting as DETAIL fragment");
             mCityDetailFragment = new CityDetailFragment().setCityItemFromListItem(
                     mCityDetailFragment.getCityItem());
-            replaceFrag(mCityDetailFragment);
+            replaceFrag(mCityDetailFragment, "detail");
         } else {
+            Log.e(TAG, "setting as MAP fragment");
             setBarWeight(1);
-            replaceFrag(mMapFragment);
+            replaceFrag(mMapFragment, "map");
         }
 
         CityListService.getInstance().addItems(arr);
         savedRec.setLayoutManager(new LinearLayoutManager(this));
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
+    }
+
+    private boolean isCurrentFragment(Fragment fragment){
+        return(fragment != null && fragment.isAdded() && fragment.getTag().equals(activeFragTag));
     }
 
     @Override
@@ -111,21 +119,23 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putString(FRAGTAG_KEY, activeFragTag);
         if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
             mFragMan.putFragment(outState, DETAIL_FRAG_KEY, mCityDetailFragment);
         }
-
     }
 
-    public void replaceFrag(Fragment frag){
+    private void replaceFrag(Fragment frag, String tag){
         FragmentTransaction ft = mFragMan.beginTransaction();
-        ft.replace(R.id.testFragContainer, frag, "test");
+        ft.replace(R.id.testFragContainer, frag, tag);
         if(appInit) {
             ft.addToBackStack(null);
         }
 
         ft.commit();
         appInit = true;
+        activeFragTag = frag.getTag();
+        Log.e(TAG, "frag change. set active id to " + activeFragTag);
     }
 
     private void setBarWeight(int weight){
@@ -145,7 +155,7 @@ public class MainActivity extends FragmentActivity {
             }
 
             mFragMan.popBackStackImmediate();
-            Log.e(TAG, "backstack popped");
+            activeFragTag = mFragMan.findFragmentById(R.id.testFragContainer).getTag();
         } else {
             super.onBackPressed();
         }
@@ -158,17 +168,16 @@ public class MainActivity extends FragmentActivity {
 
         mCityDetailFragment.setCityItemFromListItem(city);
         setBarWeight(0);
-        replaceFrag(mCityDetailFragment);
     }
 
-    public void showMapScreen(){
-        if(mMapFragment == null){
-            mMapFragment = new MapFragment().setCities(savedCities);
-        }
-
-        setBarWeight(1);
-        replaceFrag(mMapFragment);
-    }
+//    public void showMapScreen(){
+//        if(mMapFragment == null){
+//            mMapFragment = new MapFragment();//.setCities(savedCities);
+//        }
+//
+//        setBarWeight(1);
+//        replaceFrag(mMapFragment, "map");
+//    }
 
     public void clearRecycler(){
         RecyclerView rec = findViewById(R.id.markerRecycler);

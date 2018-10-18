@@ -48,8 +48,9 @@ public class CityListService {
         mPrefs = mContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    public void registerMapFragment(MapFragment fragment){
+    public Set<CityListItem> registerMapFragment(MapFragment fragment){
         this.mMapFrag = fragment;
+        return new HashSet<>(list);
     }
 
     public void showDetails(CityListItem city){
@@ -114,7 +115,8 @@ public class CityListService {
         }
 
         if(mMapFrag != null) {
-            mMapFrag.setCities(new HashSet<>(list)).refreshMap(list.get(list.size()-1));
+//            mMapFrag.setCities(new HashSet<>(list)).refreshMap(list.get(list.size()-1));
+            mMapFrag.refreshMap(list.get(list.size()-1));
         }
 
         getAdapter().notifyItemRangeChanged(0, list.size());
@@ -157,7 +159,8 @@ public class CityListService {
             addItems(arr);
         }
         getAdapter().notifyDataSetChanged();
-        mMapFrag.setCities(new HashSet<>(list)).refreshMap(null);
+        mMapFrag.refreshMap(null);
+//        mMapFrag.setCities(new HashSet<>(list)).refreshMap(null);
 
         invalidatePreferences();
     }
@@ -177,10 +180,6 @@ public class CityListService {
 
     public void registerIcon(String key, Bitmap bmp){
         cachedIcons.put(key, bmp);
-    }
-
-    public void setActiveFragment(Fragment frag){
-        ((MainActivity)mContext).replaceFrag(frag);
     }
 
     public String getTemperatureString(CityListItem item){
