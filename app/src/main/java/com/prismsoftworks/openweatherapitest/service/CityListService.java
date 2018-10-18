@@ -31,6 +31,7 @@ public class CityListService {
     private MapFragment mMapFrag;
     private Map<String, Bitmap> cachedIcons = new HashMap<>();
 
+
     public static synchronized CityListService getInstance(){
         if(instance == null){
             instance = new CityListService();
@@ -202,6 +203,38 @@ public class CityListService {
                 return item.getCityItem().getTemperature().getTemperature() + "°C";
         }
         return item.getCityItem().getTemperature().getTemperature() + "°?";
+    }
+
+    public String getLengthMeasureString(CityListItem item, String value){
+        switch (item.getChosenUnitType()){
+            case KELVIN:
+                return value + "mm";
+            case IMPERIAL:
+                return value + "in";
+            case METRIC:
+                return value + "mm";
+            default:
+                return value + "ukn";
+        }
+    }
+
+    public String getSpeedString(CityListItem item, String value){
+        switch (item.getChosenUnitType()){
+            case KELVIN:
+                return value + "kph";
+            case IMPERIAL:
+                return value + "mph";
+            case METRIC:
+                return value + "kph";
+            default:
+                return value + "ukn";
+        }
+    }
+
+    public void clearBookmarks(){
+        list.clear();
+        CityListItem[] arr = {null};
+        addItems(arr);
     }
 
 }

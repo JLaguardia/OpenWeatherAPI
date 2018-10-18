@@ -10,6 +10,12 @@ public class CityItem {
     @SerializedName("weather")
     private Weather[] weather;
 
+    @SerializedName("dt")
+    private String date;
+
+    @SerializedName("dt_txt")
+    private String dateStr;
+
     @SerializedName("main")
     private Temperature temperature;
 
@@ -24,6 +30,8 @@ public class CityItem {
 
     @SerializedName("sys")
     private Intl intl;
+
+    private CityItem[] forecast;
 
     private class Intl{
         @SerializedName("country")
@@ -113,5 +121,29 @@ public class CityItem {
 
     public void setRain(Rain rain) {
         this.rain = rain;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public CityItem[] getForecast() {
+        return forecast;
+    }
+
+    public void setForecast(CityItem[] forecast) {
+        this.forecast = forecast;
+    }
+
+    public String getDateStr() {
+        return dateStr;
+    }
+
+    public void setDateStr(String dateStr) {
+        this.dateStr = dateStr;
     }
 }

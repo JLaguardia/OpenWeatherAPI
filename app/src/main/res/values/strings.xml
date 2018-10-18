@@ -11,7 +11,6 @@
 
     <string name="noname_pin_detail_title">In this area</string>
     <string name="pin_detail_current">Current weather</string>
-    <string name="pin_detail_forecast">5 Day Forecast</string>
     <string name="default_details">Obtaining weather info…</string>
 
     <string name="ok">OK</string>
@@ -29,6 +28,16 @@
 
     <string name="city_rename_label">Rename Location</string>
     <string name="city_rename_hint">Name of this location</string>
+
+    <string name="detail_forecast">5 Day Forecast</string>
+    <string name="forecast_temp">Temperature</string>
+    <string name="forecast_humid">Humidity</string>
+    <string name="forecast_rain">Rain level</string>
+    <string name="forecast_windinfo">Wind</string>
+    <string name="loading">Loading Data…</string>
+
+    <!--<string name="forecast_winddir">Wind Direction:</string>-->
+    <!--<string name="forecast_windspeed">Wind Speed:</string>-->
 
     <!-- imported strings -->
     <string name="city">Location</string>

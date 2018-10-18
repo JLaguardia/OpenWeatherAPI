@@ -3,6 +3,7 @@ package com.prismsoftworks.openweatherapitest;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -37,14 +38,12 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     public  static final String CITIES_KEY = "storedCities";
     private final String DETAIL_FRAG_KEY = "detailFrag";
     private final String FRAGTAG_KEY = "activeFragId";
-    private SharedPreferences mPref;
     private Set<CityListItem> savedCities = new HashSet<>();
     private FragmentManager mFragMan = null;
     private MapFragment mMapFragment;
     private CityDetailFragment mCityDetailFragment;
     private boolean appInit = false;
     private String activeFragTag = "";
-
 
     //api key: eb6d211c0e99deef8bb87c94621ce704
     //api base: api.openweathermap.org/data/2.5/find?q={city}&units=imperial
@@ -75,8 +74,8 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     }
 
     private void init(){
-        mPref = getSharedPreferences("prefs", MODE_PRIVATE);
-        final String citiesCsv = mPref.getString(CITIES_KEY, "");
+        SharedPreferences pref = getSharedPreferences("prefs", MODE_PRIVATE);
+        final String citiesCsv = pref.getString(CITIES_KEY, "");
         if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
             for(String city : citiesCsv.split(";")){
                 String[] info = city.split(",");
@@ -117,6 +116,14 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
                 new RecyclerTouchHelper(0, ItemTouchHelper.LEFT , this);
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(savedRec);
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
+
+        FloatingActionButton fab = findViewById(R.id.btnSettings);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                CityListService.getInstance().clearBookmarks();
+            }
+        });
     }
 
     private boolean isCurrentFragment(Fragment fragment){
@@ -183,15 +190,6 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         replaceFrag(mCityDetailFragment, "detail");
     }
 
-//    public void showMapScreen(){
-//        if(mMapFragment == null){
-//            mMapFragment = new MapFragment();//.setCities(savedCities);
-//        }
-//
-//        setBarWeight(1);
-//        replaceFrag(mMapFragment, "map");
-//    }
-
     public void clearRecycler(){
         RecyclerView rec = findViewById(R.id.markerRecycler);
         rec.removeAllViewsInLayout();
@@ -201,25 +199,22 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
-        // backup of removed item for undo purpose
         final CityListItem deletedItem = CityListService.getInstance().getList().get(((CityViewHolder) viewHolder).itemIndex);
         String itemName = deletedItem.getName() + " ";
 
-        // remove the item from recycler view
         deletedItem.setState(ListItemState.DELETED);
         CityListService.getInstance().addItems(deletedItem);
-        // showing snack bar with Undo option
-            Snackbar snackbar = Snackbar
-                    .make(findViewById(R.id.mainContainer), itemName + getResources().getText(R.string.deleted), Snackbar.LENGTH_LONG);
-            snackbar.setAction(getResources().getString(R.string.undo), new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    deletedItem.setState(ListItemState.INSERTED);
-                    CityListService.getInstance().addItems(deletedItem);
-                }
-            });
-            snackbar.setActionTextColor(Color.YELLOW);
-            snackbar.show();
+        Snackbar snackbar = Snackbar
+                .make(findViewById(R.id.mainContainer), itemName + getResources().getText(R.string.deleted), Snackbar.LENGTH_LONG);
+        snackbar.setAction(getResources().getString(R.string.undo), new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                deletedItem.setState(ListItemState.INSERTED);
+                CityListService.getInstance().addItems(deletedItem);
+            }
+        });
+        snackbar.setActionTextColor(Color.YELLOW);
+        snackbar.show();
     }
 }
 

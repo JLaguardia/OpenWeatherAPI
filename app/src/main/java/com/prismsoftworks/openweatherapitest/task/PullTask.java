@@ -31,15 +31,20 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class PullTask {
-    //http://api.openweathermap.org/data/2.5/find?q=%s&units=%s&appid=%s
+    //REGULAR: http://api.openweathermap.org/data/2.5/find?q=%s&units=%s&appid=%s
+    //FORECAST: http://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&units=%s&appid=%s
     //icon: "http://openweathermap.org/img/w/{icon_id}.png"
     private static final String ICO_URL_FMT = "http://openweathermap.org/img/w/%s.png";
     private static final String URL_FMT = "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=%s&appid=%s";
+    private static final String FORECAST_URL_FMT = "http://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&units=%s&appid=%s";
     private static final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";
     private static final String JSON_KEY = "jsonstr";
     private static final String IMG_KEY = "imgico";
+    private static final int READ_TIMEOUT = 25000;
+    private static final int CONNECT_TIMEOUT = 5000;
     private static PullTask instance = null;
     private static List<Worker> workerList = new ArrayList<>();
+    private byte selectedTask;
 
     public static PullTask getInstance(){
         if(instance == null){
@@ -50,6 +55,15 @@ public class PullTask {
     }
 
     private PullTask() { }
+
+    public String getForecastCityJson(LatLng coord, UnitType chosenUnit){
+        String formattedUrl = String.format(FORECAST_URL_FMT,
+                String.valueOf(coord.latitude),
+                String.valueOf(coord.longitude),
+                chosenUnit.name(),
+                apiKey);
+        return fireJob(formattedUrl).getString(JSON_KEY);
+    }
 
     public String getWeatherCityJson(Set<LatLng> coords, UnitType chosenUnit) {
         StringBuilder res = new StringBuilder();
@@ -105,6 +119,8 @@ public class PullTask {
                     response.putByteArray(IMG_KEY, toByteArray(url.openStream()));
                 } else {
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(CONNECT_TIMEOUT);
+                    conn.setReadTimeout(READ_TIMEOUT);
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(conn.getInputStream()));
                     String line;
@@ -123,12 +139,13 @@ public class PullTask {
                 e.printStackTrace();
                 rawResp.append(e.getMessage());
             }
+
             response.putString(JSON_KEY, rawResp.toString());
             return response;
         }
 
         private byte[] toByteArray(InputStream in) throws IOException {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream(); //oh jeeze
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
             int data;
 

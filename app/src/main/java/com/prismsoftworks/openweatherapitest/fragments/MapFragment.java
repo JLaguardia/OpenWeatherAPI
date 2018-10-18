@@ -93,11 +93,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
     }
 
-//    public MapFragment setCities(Set<CityListItem> cities){
-//        this.mSavedCities = cities;
-//        return this;
-//    }
-
     public void refreshMap(CityListItem focusCity){
         mMap.clear();
         mSavedCities.clear();
