@@ -75,11 +75,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         if (mCurrentMarker == null) {
             String title = getResources().getString(R.string.new_pin_title);
             CityListItem item = new CityListItem(title, latLng);
-            item.setName(item.getCityItem().getName());
+
             if(item.getCityItem().getCoordinates() == null){
-                ((MainActivity)getActivity()).displayNetworkError();
+                ((MainActivity)getActivity()).displayNetworkError(item);
                 return;
             }
+            item.setName(item.getCityItem().getName());
 
             MarkerOptions marker = new MarkerOptions()
                     .position(new LatLng(latLng.latitude, latLng.longitude))

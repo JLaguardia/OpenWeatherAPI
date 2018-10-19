@@ -17,6 +17,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +28,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
+import com.prismsoftworks.openweatherapitest.fragments.HelpFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -49,16 +51,19 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     public static final String DETAIL_FRAGMENT_TAG = "detail";
     public static final String HELPER_FRAGMENT_TAG = "help";
     private final String DETAIL_FRAG_KEY = "detailFrag";
+    private final String HELP_FRAG_KEY = "helpFrag";
     private final String FRAGTAG_KEY = "activeFragId";
     private Set<CityListItem> savedCities = new HashSet<>();
     private FragmentManager mFragMan = null;
     private MapFragment mMapFragment;
     private CityDetailFragment mCityDetailFragment;
+    private HelpFragment mHelpFragment;
     private DrawerLayout mDrawerLayout;
     private NavigationView mNavView;
     private FloatingActionButton mSettingsBtn;
     private boolean appInit = false;
     private String activeFragTag = "";
+    private String weatherApiKey = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +71,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         mFragMan = getSupportFragmentManager();
         if(savedInstanceState != null){
             mCityDetailFragment = (CityDetailFragment) mFragMan.getFragment(savedInstanceState, DETAIL_FRAG_KEY);
+            mHelpFragment = (HelpFragment) mFragMan.getFragment(savedInstanceState, HELP_FRAG_KEY);
             activeFragTag = savedInstanceState.getString(FRAGTAG_KEY);
             CityListService.getInstance().registerContext(this);
         }
@@ -78,6 +84,10 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         CityListService.getInstance().clearContext();
         setContentView(R.layout.activity_main);
         CityListService.getInstance().registerContext(this);
+        weatherApiKey = getString(R.string.open_weather_key);
+        if(!weatherApiKey.equals("")){
+            CityListService.getInstance().setWeatherApiKey(weatherApiKey);
+        }
         ((LinearLayout)findViewById(R.id.mainContainer)).setOrientation(getResources()
                                                                 .getConfiguration().orientation);
         mFragMan = getSupportFragmentManager();
@@ -101,7 +111,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
         CityListService.getInstance().setUnits(preferedUnit);
         final String citiesCsv = pref.getString(CITIES_KEY, "");
-        if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
+        if(!citiesCsv.equals("")){
             for(String city : citiesCsv.split(";")){
                 String[] info = city.split(",");
                 LatLng coor = new LatLng(Double.parseDouble(info[1]),
@@ -121,13 +131,17 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
         mSettingsBtn = findViewById(R.id.btnSettings);
         //add map frag
-        mMapFragment = new MapFragment();//.setCities(savedCities);
+        mMapFragment = new MapFragment();
 
         if(isCurrentFragment(mCityDetailFragment)) {
             setBarWeight(0);
             mCityDetailFragment = new CityDetailFragment().setCityItemFromListItem(
                     mCityDetailFragment.getCityItem());
             replaceFrag(mCityDetailFragment, DETAIL_FRAGMENT_TAG);
+        } else if(isCurrentFragment(mHelpFragment)) {
+            setBarWeight(0);
+            mHelpFragment = new HelpFragment();
+            replaceFrag(mHelpFragment, HELPER_FRAGMENT_TAG);
         } else {
             setBarWeight(1);
             replaceFrag(mMapFragment, MAP_FRAGMENT_TAG);
@@ -162,41 +176,6 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
                 CityListService.getInstance().setUnits(b ? UnitType.IMPERIAL : UnitType.METRIC);
             }
         });
-
-//        mSearchview = findViewById(R.id.svCities);
-//        mSearchview.setListener(new SearchEdit() {
-//            @Override
-//            public void onQueryTextChanged(String query) {
-//                CityListService.getInstance().getAdapter().filterQuery(query);
-//                savedRec.scrollToPosition(0);
-//            }
-//        });
-//        mSearchview.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View v, boolean b) {
-//                if(b){
-//                    setBarWeight(9);
-//                    Log.e("sv", "setting barweight 9");
-//                } else {
-//                    Log.e("sv", "setting barweight 1");
-//                    setBarWeight(1);
-//                }
-//            }
-//        });
-
-//        mSearchview.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-//            @Override
-//            public boolean onQueryTextSubmit(String s) {
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean onQueryTextChange(String query) {
-//                CityListService.getInstance().getAdapter().filterQuery(query);
-//                savedRec.scrollToPosition(0);
-//                return true;
-//            }
-//        });
     }
 
     private boolean isCurrentFragment(Fragment fragment){
@@ -216,6 +195,9 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         outState.putString(FRAGTAG_KEY, activeFragTag);
         if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
             mFragMan.putFragment(outState, DETAIL_FRAG_KEY, mCityDetailFragment);
+        }
+        if(mHelpFragment != null && mHelpFragment.isAdded()){
+            mFragMan.putFragment(outState, HELP_FRAG_KEY, mHelpFragment);
         }
     }
 
@@ -265,12 +247,6 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         replaceFrag(mCityDetailFragment, DETAIL_FRAGMENT_TAG);
     }
 
-//    public void handleSearchFocus(){
-//        mSearchview.clearFocus();
-//        findViewById(R.id.contentFrame).requestFocus();
-//        setBarWeight(1);
-//    }
-
     public void clearRecycler(){
         RecyclerView rec = findViewById(R.id.markerRecycler);
         rec.removeAllViewsInLayout();
@@ -301,70 +277,39 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()){
-            case R.id.miDelete:
-                CityListService.getInstance().clearBookmarks();
-                break;
+            case R.id.miHelp:
+                mHelpFragment = new HelpFragment();
+                setBarWeight(0);
+                replaceFrag(mHelpFragment, HELPER_FRAGMENT_TAG);
+                mDrawerLayout.closeDrawers();
+                return true;
             case R.id.miUnitToggle:
                 item.setChecked(!item.isChecked());
                 ((Switch)item.getActionView().findViewById(R.id.swUnit)).setChecked(item.isChecked());
                 return true;
+            case R.id.miDelete:
+                CityListService.getInstance().clearBookmarks();
+                Snackbar.make(mDrawerLayout, getResources().getString(R.string.all_deleted),
+                        Snackbar.LENGTH_SHORT).show();
+                mDrawerLayout.closeDrawers();
+                break;
         }
-        Snackbar.make(mDrawerLayout, getResources().getString(R.string.all_deleted),
-                Snackbar.LENGTH_SHORT).show();
-        mDrawerLayout.closeDrawers();
         return true;
     }
 
-    public void displayNetworkError(){
-        Snackbar.make(mDrawerLayout, getResources().getText(R.string.network_error),
-                Snackbar.LENGTH_SHORT).show();
+    public void displayNetworkError(CityListItem item){
+        String msg = getResources().getText(R.string.network_error).toString();
+        boolean errMsg = false;
+        if(item.getErrorMessage() != null && !item.getErrorMessage().equals("")){
+            errMsg = true;
+            msg += " Details of error: \n" + item.getErrorMessage();
+        }
+        Snackbar snack = Snackbar.make(mDrawerLayout, msg, Snackbar.LENGTH_LONG);
+
+        if(errMsg){
+            ((TextView)snack.getView().findViewById(android.support.design.R.id.snackbar_text))
+                    .setMaxLines(10);
+        }
+        snack.show();
     }
 }
-
-    /**
-     * sample:
-     // https://samples.openweathermap.org/data/2.5/weather?lat=28.67&lon=-81.42&appid=b6907d289e10d714a6e88b30761fae22
-
-     {
-         "coord": {
-             "lon": 139.01,
-             "lat": 35.02
-     },
-         "weather": [
-         {
-             "id": 800,
-             "main": "Clear",
-             "description": "clear sky",
-             "icon": "01n"
-         }
-     ],
-         "base": "stations",
-         "main": {
-             "temp": 285.514,
-             "pressure": 1013.75,
-             "humidity": 100,
-             "temp_min": 285.514,
-             "temp_max": 285.514,
-             "sea_level": 1023.22,
-             "grnd_level": 1013.75
-             },
-         "wind": {
-             "speed": 5.52,
-             "deg": 311
-             },
-     "clouds": {
-     "all": 0
-     },
-     "dt": 1485792967,
-     "sys": {
-     "message": 0.0025,
-     "country": "JP",
-     "sunrise": 1485726240,
-     "sunset": 1485763863
-     },
-     "id": 1907296,
-     "name": "Tawarano",
-     "cod": 200
-     }
-     */
-

@@ -9,6 +9,7 @@ import android.widget.ImageView;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
+import com.prismsoftworks.openweatherapitest.service.CityListService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,7 +38,7 @@ public class PullTask {
     private static final String ICO_URL_FMT = "http://openweathermap.org/img/w/%s.png";
     private static final String URL_FMT = "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=%s&appid=%s";
     private static final String FORECAST_URL_FMT = "http://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&units=%s&appid=%s";
-    private static final String apiKey = "eb6d211c0e99deef8bb87c94621ce704";
+    private static final String mApiKey = "eb6d211c0e99deef8bb87c94621ce704";
     private static final String JSON_KEY = "jsonstr";
     private static final String IMG_KEY = "imgico";
     private static final int READ_TIMEOUT = 25000;
@@ -57,6 +58,8 @@ public class PullTask {
     private PullTask() { }
 
     public String getForecastCityJson(LatLng coord, UnitType chosenUnit){
+        String apiKey = CityListService.getInstance().getWeatherApiKey();
+        apiKey = (apiKey.equals("") ? mApiKey : apiKey);
         String formattedUrl = String.format(FORECAST_URL_FMT,
                 String.valueOf(coord.latitude),
                 String.valueOf(coord.longitude),
@@ -66,6 +69,8 @@ public class PullTask {
     }
 
     public String getWeatherCityJson(Set<LatLng> coords, UnitType chosenUnit) {
+        String apiKey = CityListService.getInstance().getWeatherApiKey();
+        apiKey = (apiKey.equals("") ? mApiKey : apiKey);
         StringBuilder res = new StringBuilder();
         for(LatLng coord: coords) {
             String formattedUrl = String.format(URL_FMT,
@@ -128,14 +133,26 @@ public class PullTask {
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(CONNECT_TIMEOUT);
                     conn.setReadTimeout(READ_TIMEOUT);
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream()));
-                    String line;
+                    int code = conn.getResponseCode();
+                    BufferedReader reader;
+                    if(code >= 200 && code <= 299) {
+                        reader = new BufferedReader(
+                                new InputStreamReader(conn.getInputStream()));
+                        String line;
 
-                    while ((line = reader.readLine()) != null) {
-                        rawResp.append(line);
+                        while ((line = reader.readLine()) != null) {
+                            rawResp.append(line);
+                        }
+
+                    } else {
+                        reader = new BufferedReader(
+                                new InputStreamReader(conn.getErrorStream()));
+                        String line;
+
+                        while ((line = reader.readLine()) != null) {
+                            rawResp.append(line);
+                        }
                     }
-
                     conn.disconnect();
                     reader.close();
                 }
@@ -143,6 +160,9 @@ public class PullTask {
                 mue.printStackTrace();
                 rawResp.append(mue.getMessage());
             } catch (IOException e) {
+                e.printStackTrace();
+                rawResp.append(e.getMessage());
+            } catch(Exception e){
                 e.printStackTrace();
                 rawResp.append(e.getMessage());
             }

@@ -1,0 +1,21 @@
+body {
+    background-color:#cfd8dc;
+}
+
+#helpTitle, .card-title  {
+    font-family: 'Abel', sans-serif;
+    text-align: center;
+}
+
+p {
+    font-family: 'Raleway', sans-serif;
+
+}
+
+h2 {
+    font-family: 'Raleway', sans-serif;
+}
+
+.collapsible-body {
+    border-bottom: 0px;
+}

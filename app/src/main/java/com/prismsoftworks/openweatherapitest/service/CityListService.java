@@ -24,6 +24,7 @@ import java.util.Set;
 public class CityListService {
     private static CityListService instance;
     private static final String PREF_NAME = "prefs";
+    private String weatherApiKey = "";
     private List<CityListItem> list;
     private CityListAdapter mAdapter;
     private Context mContext;
@@ -259,6 +260,15 @@ public class CityListService {
 
             addItems(list.toArray(new CityListItem[] {}));
         }
+    }
+
+
+    public String getWeatherApiKey() {
+        return weatherApiKey;
+    }
+
+    public void setWeatherApiKey(String weatherApiKey) {
+        this.weatherApiKey = weatherApiKey;
     }
 
 }

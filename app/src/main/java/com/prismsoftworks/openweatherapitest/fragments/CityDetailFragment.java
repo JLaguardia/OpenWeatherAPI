@@ -115,7 +115,7 @@ public class CityDetailFragment extends Fragment {
             try {
                 pullForecastData();
             } catch(Exception ex){
-                ((MainActivity)getContext()).displayNetworkError();
+                ((MainActivity)getContext()).displayNetworkError(cityItem);
                 cityItem.getCityItem().setForecast(new CityItem[]{null});
             }
         }

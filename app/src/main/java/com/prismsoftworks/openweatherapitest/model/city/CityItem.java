@@ -3,6 +3,11 @@ package com.prismsoftworks.openweatherapitest.model.city;
 import com.google.gson.annotations.SerializedName;
 
 public class CityItem {
+    @SerializedName("cod")
+    public String code;
+
+    @SerializedName("message")
+    public String message;
 
     @SerializedName("coord")
     private Coordinates coordinates;
@@ -145,5 +150,25 @@ public class CityItem {
 
     public void setDateStr(String dateStr) {
         this.dateStr = dateStr;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public String getErrorMessage(){
+        return "Code: " + code + " Message: " + message;
     }
 }

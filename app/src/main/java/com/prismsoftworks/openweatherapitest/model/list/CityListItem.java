@@ -3,6 +3,8 @@ package com.prismsoftworks.openweatherapitest.model.list;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.annotations.SerializedName;
 import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.city.Weather;
@@ -64,7 +66,9 @@ public class CityListItem implements Serializable{
                 cityItem = new CityItem();
             }
         }
-
+        if(cityItem == null){
+            cityItem = new CityItem();//this rarely happens
+        }
         return cityItem;
     }
 
@@ -78,5 +82,9 @@ public class CityListItem implements Serializable{
 
     public void clearCityItem(){
         cityItem = null;
+    }
+
+    public String getErrorMessage() {
+        return cityItem.getErrorMessage();
     }
 }
