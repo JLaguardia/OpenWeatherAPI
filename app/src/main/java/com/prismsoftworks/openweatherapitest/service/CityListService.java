@@ -10,6 +10,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.adapter.CityListAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
+import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 
@@ -23,13 +24,13 @@ import java.util.Set;
 public class CityListService {
     private static CityListService instance;
     private static final String PREF_NAME = "prefs";
-    private static final String CITIES_KEY = "storedCities";
     private List<CityListItem> list;
     private CityListAdapter mAdapter;
     private Context mContext;
     private SharedPreferences mPrefs;
     private MapFragment mMapFrag;
     private Map<String, Bitmap> cachedIcons = new HashMap<>();
+    private UnitType mChosenUnitType = UnitType.IMPERIAL;
 
 
     public static synchronized CityListService getInstance(){
@@ -134,6 +135,7 @@ public class CityListService {
         getAdapter().notifyItemRangeChanged(0, list.size());
         getAdapter().notifyDataSetChanged();
         invalidatePreferences();
+        Log.i("god", "adapter notified and changes saved");
     }
 
     public Set<CityListItem> bookmarkCity(CityListItem city){
@@ -159,7 +161,8 @@ public class CityListService {
             citiescsv.append(String.valueOf(item.getCoordinates().longitude));
         }
 
-        mPrefs.edit().putString(CITIES_KEY, citiescsv.toString()).apply();
+        mPrefs.edit().putString(MainActivity.CITIES_KEY, citiescsv.toString()).apply();
+        mPrefs.edit().putString(MainActivity.UNITS_KEY, mChosenUnitType.name()).apply();
     }
 
     public void deleteCity(CityListItem city){
@@ -235,6 +238,21 @@ public class CityListService {
         list.clear();
         CityListItem[] arr = {null};
         addItems(arr);
+    }
+
+    public void setUnits(UnitType chosenUnitType){
+        if(chosenUnitType != mChosenUnitType) {
+            mChosenUnitType = chosenUnitType;
+            for (CityListItem item : list) {
+                if (item != null) {
+                    item.setChosenUnitType(mChosenUnitType);
+                    item.setState(ListItemState.UPDATED);
+                    item.clearCityItem();
+                }
+            }
+
+            addItems(list.toArray(new CityListItem[] {}));
+        }
     }
 
 }

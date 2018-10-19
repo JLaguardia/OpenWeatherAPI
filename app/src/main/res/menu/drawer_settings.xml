@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-
+<menu
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/miDelete"
+        android:icon="@drawable/ic_delete_white_3x"
+        android:title="@string/delete_all"
+        />
+    <item
+        android:id="@+id/miUnitToggle"
+        android:title="@string/units_label"
+        app:actionLayout="@layout/unit_switch"
+        />
 </menu>

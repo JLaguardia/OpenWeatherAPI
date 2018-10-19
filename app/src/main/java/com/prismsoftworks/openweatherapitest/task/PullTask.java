@@ -90,6 +90,12 @@ public class PullTask {
         return res;
     }
 
+    public void stopTasks(){
+        for(Worker wk : workerList){
+            wk.cancel(true);
+        }
+    }
+
     private Bundle fireJob(String... url){
         Bundle res = null;
         try {
@@ -104,9 +110,9 @@ public class PullTask {
         return res;
     }
 
-    public List<Worker> getTaskList(){
-        return workerList;
-    }
+//    public List<Worker> getTaskList(){
+//        return workerList;
+//    }
 
     private static class Worker extends AsyncTask<String, Void, Bundle>{
         @Override
@@ -160,6 +166,12 @@ public class PullTask {
         protected void onPostExecute(Bundle data) {
             workerList.remove(this);
             super.onPostExecute(data);
+        }
+
+        @Override
+        protected void onCancelled() {
+            workerList.remove(this);
+            super.onCancelled();
         }
     }
 }

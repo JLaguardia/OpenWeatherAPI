@@ -2,21 +2,30 @@ package com.prismsoftworks.openweatherapitest;
 
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.Switch;
+import android.widget.TextView;
 
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
@@ -24,24 +33,30 @@ import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
+import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 import com.prismsoftworks.openweatherapitest.object.CityViewHolder;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 import com.prismsoftworks.openweatherapitest.service.RecyclerTouchHelper;
+import com.prismsoftworks.openweatherapitest.task.PullTask;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class MainActivity extends FragmentActivity implements RecyclerTouchHelper.RecyclerItemTouchHelperListener{
+public class MainActivity extends FragmentActivity implements RecyclerTouchHelper.RecyclerItemTouchHelperListener, NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = MainActivity.class.getSimpleName();
-    public  static final String CITIES_KEY = "storedCities";
+    public static final String CITIES_KEY = "storedCities";
+    public static final String UNITS_KEY = "storedUnit";
     private final String DETAIL_FRAG_KEY = "detailFrag";
     private final String FRAGTAG_KEY = "activeFragId";
     private Set<CityListItem> savedCities = new HashSet<>();
     private FragmentManager mFragMan = null;
     private MapFragment mMapFragment;
     private CityDetailFragment mCityDetailFragment;
+    private DrawerLayout mDrawerLayout;
+    private NavigationView mNavView;
+    private FloatingActionButton mSettingsBtn;
     private boolean appInit = false;
     private String activeFragTag = "";
 
@@ -70,11 +85,25 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         ((LinearLayout)findViewById(R.id.mainContainer)).setOrientation(getResources()
                                                                 .getConfiguration().orientation);
         mFragMan = getSupportFragmentManager();
+        mDrawerLayout = findViewById(R.id.drawer);
+        mNavView = findViewById(R.id.navView);
         init();
     }
 
     private void init(){
         SharedPreferences pref = getSharedPreferences("prefs", MODE_PRIVATE);
+        final UnitType preferedUnit = UnitType.valueOf(pref.getString(UNITS_KEY, UnitType.IMPERIAL.name()));
+
+        MenuItem unitItem =  mNavView.getMenu().getItem(1);
+        Switch sw = unitItem.getActionView().findViewById(R.id.swUnit);
+
+        sw.setChecked(preferedUnit == UnitType.IMPERIAL);
+        unitItem.setChecked(sw.isChecked());
+
+        int unitId = (sw.isChecked() ? R.string.imperial_measurement : R.string.metric_measurement);
+        ((TextView)((ViewGroup)sw.getParent()).findViewById(R.id.lblUnitChoose)).setText(unitId);
+
+        CityListService.getInstance().setUnits(preferedUnit);
         final String citiesCsv = pref.getString(CITIES_KEY, "");
         if(!citiesCsv.equals("")){ // "Orlando,123.44,-100;Atlanta,345.11,-80"
             for(String city : citiesCsv.split(";")){
@@ -93,6 +122,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
             arr[0] = null;
         }
 
+        mSettingsBtn = findViewById(R.id.btnSettings);
         //add map frag
         mMapFragment = new MapFragment();//.setCities(savedCities);
 
@@ -117,11 +147,24 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(savedRec);
         savedRec.setAdapter(CityListService.getInstance().getAdapter());
 
-        FloatingActionButton fab = findViewById(R.id.btnSettings);
-        fab.setOnClickListener(new View.OnClickListener() {
+        mSettingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                CityListService.getInstance().clearBookmarks();
+                if(mDrawerLayout.isDrawerOpen(GravityCompat.START)){
+                    mDrawerLayout.closeDrawers();
+                } else {
+                    mDrawerLayout.openDrawer(GravityCompat.START);
+                }
+            }
+        });
+
+        mNavView.setNavigationItemSelectedListener(this);
+        sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton btn, boolean b) {
+                int unitId = (b ? R.string.imperial_measurement : R.string.metric_measurement);
+                ((TextView)((ViewGroup)btn.getParent()).findViewById(R.id.lblUnitChoose)).setText(unitId);
+                CityListService.getInstance().setUnits(b ? UnitType.IMPERIAL : UnitType.METRIC);
             }
         });
     }
@@ -139,6 +182,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        PullTask.getInstance().stopTasks();
         outState.putString(FRAGTAG_KEY, activeFragTag);
         if(mCityDetailFragment != null && mCityDetailFragment.isAdded()){
             mFragMan.putFragment(outState, DETAIL_FRAG_KEY, mCityDetailFragment);
@@ -146,6 +190,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     }
 
     private void replaceFrag(Fragment frag, String tag){
+        mSettingsBtn.setVisibility(frag instanceof MapFragment ? View.VISIBLE : View.INVISIBLE);
         FragmentTransaction ft = mFragMan.beginTransaction();
         ft.replace(R.id.testFragContainer, frag, tag);
         if(appInit) {
@@ -166,6 +211,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
     @Override
     public void onBackPressed() {
+        PullTask.getInstance().stopTasks();
         if(mFragMan.getBackStackEntryCount() > 0) {
             if(mMapFragment.isAdded()){
                 setBarWeight(0);
@@ -175,6 +221,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
             mFragMan.popBackStackImmediate();
             activeFragTag = mFragMan.findFragmentById(R.id.testFragContainer).getTag();
+            mSettingsBtn.setVisibility(activeFragTag.equals("map") ? View.VISIBLE : View.INVISIBLE);
         } else {
             super.onBackPressed();
         }
@@ -215,6 +262,28 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         });
         snackbar.setActionTextColor(Color.YELLOW);
         snackbar.show();
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.miDelete:
+                CityListService.getInstance().clearBookmarks();
+                break;
+            case R.id.miUnitToggle:
+                item.setChecked(!item.isChecked());
+                ((Switch)item.getActionView().findViewById(R.id.swUnit)).setChecked(item.isChecked());
+                return true;
+        }
+        Snackbar.make(mDrawerLayout, getResources().getString(R.string.all_deleted),
+                Snackbar.LENGTH_SHORT).show();
+        mDrawerLayout.closeDrawers();
+        return true;
+    }
+
+    public void displayNetworkError(){
+        Snackbar.make(mDrawerLayout, getResources().getText(R.string.network_error),
+                Snackbar.LENGTH_SHORT).show();
     }
 }
 

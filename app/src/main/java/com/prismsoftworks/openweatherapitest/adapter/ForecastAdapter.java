@@ -45,6 +45,17 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ForecastViewHolder holder, int position) {
         final CityItem cityItem = items.get(position);
+        if(cityItem == null){
+            holder.lblDate.setText(holder.lblDate.getContext().getResources().getString(R.string.network_error));
+            ViewGroup parent = (ViewGroup) holder.lblDate.getParent();
+            for(int i = 0; i < parent.getChildCount(); i++){
+                parent.getChildAt(i).setVisibility(View.INVISIBLE);
+            }
+
+            holder.lblDate.setVisibility(View.VISIBLE);
+            return;
+        }
+
         holder.lblTemp.setText(CityListService.getInstance().getTemperatureString(item));
         holder.lblHumid.setText(String.valueOf(cityItem.getTemperature().getHumidity()));
         holder.lblRain.setText(CityListService.getInstance().getLengthMeasureString(item,
