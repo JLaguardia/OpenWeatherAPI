@@ -27,6 +27,7 @@ import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
+import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 
 import java.util.HashSet;
@@ -92,6 +93,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     }
 
     public void moveCamera(LatLng coord) {
+//        ((MainActivity)getContext()).handleSearchFocus();
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coord));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
     }
@@ -150,10 +152,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(final Marker marker) {
-                CityListItem chosenCity = null;
+                final CityListItem[] chosenCity = new CityListItem[] {null};
                 for(CityListItem city : mSavedCities){
                     if(marker.getPosition().equals(city.getCoordinates())){
-                        chosenCity = city;
+                        chosenCity[0] = city;
                     }
                 }
                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -161,7 +163,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                 FrameLayout container = new FrameLayout(context);
                 container.setPadding(12, 0, 12, 0);
                 final EditText input = new EditText(context);
-                input.setHint(chosenCity.getName());
+                input.setHint(chosenCity[0].getName());
                 input.setInputType(InputType.TYPE_CLASS_TEXT);
                 container.addView(input);
                 builder.setView(container);
@@ -171,9 +173,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 marker.setTitle(input.getText().toString());
                                 marker.showInfoWindow();
-                                CityListItem item = new CityListItem(input.getText().toString(),
-                                        marker.getPosition());
-                                CityListService.getInstance().bookmarkCity(item);
+                                chosenCity[0].setName(input.getText().toString());
+                                chosenCity[0].setState(ListItemState.UPDATED);
+
+                                CityListService.getInstance().bookmarkCity(chosenCity[0]);
                             }
                         });
 

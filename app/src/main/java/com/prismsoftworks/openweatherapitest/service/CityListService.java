@@ -103,6 +103,7 @@ public class CityListService {
 
             switch (item.getState()){
                 case INSERTED:
+                    item.setChosenUnitType(mChosenUnitType);
                     toAdd.add(item);
                     break;
                 case UPDATED:
@@ -128,14 +129,19 @@ public class CityListService {
         }
 
         if(mMapFrag != null) {
-//            mMapFrag.setCities(new HashSet<>(list)).refreshMap(list.get(list.size()-1));
             mMapFrag.refreshMap(list.get(list.size()-1));
         }
 
+        for(CityListItem city : list){
+            if(city != null){
+                city.setState(ListItemState.LOADED);
+            }
+        }
+
+        getAdapter().updateActiveList();
         getAdapter().notifyItemRangeChanged(0, list.size());
         getAdapter().notifyDataSetChanged();
         invalidatePreferences();
-        Log.i("god", "adapter notified and changes saved");
     }
 
     public Set<CityListItem> bookmarkCity(CityListItem city){

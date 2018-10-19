@@ -2,13 +2,17 @@
 <menu
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/miDelete"
-        android:icon="@drawable/ic_delete_white_3x"
-        android:title="@string/delete_all"
-        />
+    <item
+        android:id="@+id/miHelp"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="@string/help_label" />
     <item
         android:id="@+id/miUnitToggle"
         android:title="@string/units_label"
         app:actionLayout="@layout/unit_switch"
+        />
+    <item android:id="@+id/miDelete"
+        android:icon="@drawable/ic_delete_white_3x"
+        android:title="@string/delete_all"
         />
 </menu>

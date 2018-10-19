@@ -8,6 +8,7 @@ import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -76,6 +77,11 @@ public class CityDetailFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         outState.putSerializable(BUNDLE_KEY, cityItem);
         super.onSaveInstanceState(outState);
@@ -124,7 +130,7 @@ public class CityDetailFragment extends Fragment {
             rec.setAdapter(adapter);
         }
 
-        if(replaceView) {
+        if(replaceView && getView() != null) {
             ViewGroup parent = (ViewGroup) getView();
             parent.removeAllViews();
             parent.addView(v);

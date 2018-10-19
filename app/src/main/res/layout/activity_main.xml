@@ -9,8 +9,10 @@
     >
     <FrameLayout
         android:id="@+id/contentFrame"
+        android:focusable="true"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
         <android.support.design.widget.CoordinatorLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -44,16 +46,20 @@
                     android:layout_weight="2"
                     android:layout_width="match_parent"
                     android:orientation="vertical"
-                    android:layout_height="match_parent">
+                    android:layout_height="match_parent"
+                    android:fitsSystemWindows="true">
 
-                    <SearchView
-                        android:layout_width="match_parent"
-                        android:layout_height="40dp"></SearchView>
+                    <!--<android.support.v7.widget.SearchView-->
+                        <!--android:id="@+id/svCities"-->
+                        <!--android:layout_width="match_parent"-->
+                        <!--android:layout_height="40dp"-->
+                        <!--android:iconifiedByDefault="true"-->
+                        <!--/>-->
+
                     <android.support.v7.widget.RecyclerView
                         android:id="@+id/markerRecycler"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent" />
-
                 </LinearLayout>
         </LinearLayout>
 

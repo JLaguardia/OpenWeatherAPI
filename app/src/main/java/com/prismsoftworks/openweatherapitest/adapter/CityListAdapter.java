@@ -9,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,10 +23,15 @@ import com.prismsoftworks.openweatherapitest.object.CityViewHolder;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 import com.prismsoftworks.openweatherapitest.task.PullTask;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
-    private List<CityListItem> items;
+    private List<CityListItem> mMasterList;
+    private List<CityListItem> mActiveList;
 
     public CityListAdapter(){ }
 
@@ -39,12 +45,12 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
 
     @Override
     public int getItemCount() {
-        return items.size();
+        return mActiveList.size();
     }
 
     @Override
     public void onBindViewHolder(@NonNull CityViewHolder holder, int position) {
-        final CityListItem item = items.get(position);
+        final CityListItem item = mActiveList.get(position);
         if(item == null){
             return;
         }
@@ -134,7 +140,29 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
     }
 
     public void setItemList(List<CityListItem> list){
-        this.items = list;
+        this.mMasterList = list;
+        updateActiveList();
+    }
+
+    public void updateActiveList(){
+        mActiveList = new ArrayList<>(mMasterList);
+        notifyDataSetChanged();
+    }
+
+    public void filterQuery(String query){
+        mActiveList.clear();
+        Pattern p = Pattern.compile(query.toLowerCase() + "\\w*\\W*\\s*\\d*\\D*");
+        for(CityListItem item : mMasterList){
+            if(item == null){
+                continue;
+            }
+
+            Matcher m = p.matcher(item.getName().toLowerCase());
+            if(m.matches()){
+                mActiveList.add(item);
+            }
+        }
+
         notifyDataSetChanged();
     }
 

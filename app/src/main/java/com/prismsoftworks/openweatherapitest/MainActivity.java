@@ -17,21 +17,18 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 
-import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
@@ -48,6 +45,9 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     private static final String TAG = MainActivity.class.getSimpleName();
     public static final String CITIES_KEY = "storedCities";
     public static final String UNITS_KEY = "storedUnit";
+    public static final String MAP_FRAGMENT_TAG = "map";
+    public static final String DETAIL_FRAGMENT_TAG = "detail";
+    public static final String HELPER_FRAGMENT_TAG = "help";
     private final String DETAIL_FRAG_KEY = "detailFrag";
     private final String FRAGTAG_KEY = "activeFragId";
     private Set<CityListItem> savedCities = new HashSet<>();
@@ -59,11 +59,6 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     private FloatingActionButton mSettingsBtn;
     private boolean appInit = false;
     private String activeFragTag = "";
-
-    //api key: eb6d211c0e99deef8bb87c94621ce704
-    //api base: api.openweathermap.org/data/2.5/find?q={city}&units=imperial
-    //api base: api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&units=imperial
-    //icon: "http://openweathermap.org/img/w/{icon_id}.png"
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +74,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     @Override
     protected void onResume() {
         super.onResume();
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         CityListService.getInstance().clearContext();
         setContentView(R.layout.activity_main);
         CityListService.getInstance().registerContext(this);
@@ -110,11 +106,12 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
                 String[] info = city.split(",");
                 LatLng coor = new LatLng(Double.parseDouble(info[1]),
                         Double.parseDouble(info[2]));
-                savedCities.add(new CityListItem(info[0], coor));
+                CityListItem saved = new CityListItem(info[0], coor);
+                savedCities.add(saved);
             }
         }
 
-        RecyclerView savedRec = findViewById(R.id.markerRecycler);
+        final RecyclerView savedRec = findViewById(R.id.markerRecycler);
         CityListItem[] arr = new CityListItem[savedCities.size()];
         arr = savedCities.toArray(arr);
         if(arr.length == 0){
@@ -128,14 +125,12 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
         if(isCurrentFragment(mCityDetailFragment)) {
             setBarWeight(0);
-            Log.e(TAG, "setting as DETAIL fragment");
             mCityDetailFragment = new CityDetailFragment().setCityItemFromListItem(
                     mCityDetailFragment.getCityItem());
-            replaceFrag(mCityDetailFragment, "detail");
+            replaceFrag(mCityDetailFragment, DETAIL_FRAGMENT_TAG);
         } else {
-            Log.e(TAG, "setting as MAP fragment");
             setBarWeight(1);
-            replaceFrag(mMapFragment, "map");
+            replaceFrag(mMapFragment, MAP_FRAGMENT_TAG);
         }
 
         CityListService.getInstance().addItems(arr);
@@ -167,6 +162,41 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
                 CityListService.getInstance().setUnits(b ? UnitType.IMPERIAL : UnitType.METRIC);
             }
         });
+
+//        mSearchview = findViewById(R.id.svCities);
+//        mSearchview.setListener(new SearchEdit() {
+//            @Override
+//            public void onQueryTextChanged(String query) {
+//                CityListService.getInstance().getAdapter().filterQuery(query);
+//                savedRec.scrollToPosition(0);
+//            }
+//        });
+//        mSearchview.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View v, boolean b) {
+//                if(b){
+//                    setBarWeight(9);
+//                    Log.e("sv", "setting barweight 9");
+//                } else {
+//                    Log.e("sv", "setting barweight 1");
+//                    setBarWeight(1);
+//                }
+//            }
+//        });
+
+//        mSearchview.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+//            @Override
+//            public boolean onQueryTextSubmit(String s) {
+//                return false;
+//            }
+//
+//            @Override
+//            public boolean onQueryTextChange(String query) {
+//                CityListService.getInstance().getAdapter().filterQuery(query);
+//                savedRec.scrollToPosition(0);
+//                return true;
+//            }
+//        });
     }
 
     private boolean isCurrentFragment(Fragment fragment){
@@ -202,7 +232,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         activeFragTag = frag.getTag();
     }
 
-    private void setBarWeight(int weight){
+    public void setBarWeight(int weight){
         AppBarLayout bar = findViewById(R.id.main_appbar);
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) bar.getLayoutParams();
         lp.weight = weight;
@@ -228,14 +258,18 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
     }
 
     public void showCityDetails(CityListItem city){
-        if(mCityDetailFragment == null){
-            mCityDetailFragment = new CityDetailFragment();
-        }
-
-        mCityDetailFragment.setCityItemFromListItem(city);
+        //TODO find a way to optimize this... we shouldnt have to set this to null and then start again
+        mCityDetailFragment = null;
+        mCityDetailFragment = new CityDetailFragment().setCityItemFromListItem(city);
         setBarWeight(0);
-        replaceFrag(mCityDetailFragment, "detail");
+        replaceFrag(mCityDetailFragment, DETAIL_FRAGMENT_TAG);
     }
+
+//    public void handleSearchFocus(){
+//        mSearchview.clearFocus();
+//        findViewById(R.id.contentFrame).requestFocus();
+//        setBarWeight(1);
+//    }
 
     public void clearRecycler(){
         RecyclerView rec = findViewById(R.id.markerRecycler);

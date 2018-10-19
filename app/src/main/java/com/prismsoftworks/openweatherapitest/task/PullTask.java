@@ -91,6 +91,7 @@ public class PullTask {
     }
 
     public void stopTasks(){
+        Log.e("worker", "Stopping worker threads: " + workerList.size());
         for(Worker wk : workerList){
             wk.cancel(true);
         }
