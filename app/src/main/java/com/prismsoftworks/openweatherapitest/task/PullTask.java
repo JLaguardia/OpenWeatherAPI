@@ -45,6 +45,7 @@ public class PullTask {
     private static final int CONNECT_TIMEOUT = 5000;
     private static PullTask instance = null;
     private static List<Worker> workerList = new ArrayList<>();
+    private static Map<String, byte[]> cachedIcons = new HashMap<>();
 
     public static PullTask getInstance(){
         if(instance == null){
@@ -81,8 +82,18 @@ public class PullTask {
     }
 
     public void getWeatherIconBitmap(String iconCode, TaskCallback callback){
+        if(cachedIcons.containsKey(iconCode)) {
+            Bundle res = new Bundle();
+            res.putByteArray(IMG_KEY, cachedIcons.get(iconCode));
+            callback.callback(res);
+        }
+
         String formattedUrl = String.format(ICO_URL_FMT, iconCode);
-        fireJob(callback, formattedUrl, IMG_KEY);
+        fireJob(callback, formattedUrl, iconCode);
+    }
+
+    public void registerBitmap(String key, byte[] bitmap){
+        cachedIcons.put(key, bitmap);
     }
 
     public void stopTasks(){
@@ -96,10 +107,6 @@ public class PullTask {
         workerList.add(new Worker(callback));
         workerList.get(workerList.size() - 1).execute(url);
     }
-
-//    public List<Worker> getTaskList(){
-//        return workerList;
-//    }
 
     private static class Worker extends AsyncTask<String, Void, Void>{
         private final TaskCallback callback;
@@ -116,7 +123,9 @@ public class PullTask {
             try {
                 URL url = new URL(params[0]);
                 if(params.length > 1){
-                    response.putByteArray(IMG_KEY, toByteArray(url.openStream()));
+                    byte[] bytes = toByteArray(url.openStream());
+                    response.putByteArray(IMG_KEY, bytes);
+                    PullTask.getInstance().registerBitmap(params[1], bytes);
                 } else {
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(CONNECT_TIMEOUT);

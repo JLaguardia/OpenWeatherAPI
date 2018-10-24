@@ -230,23 +230,23 @@ public class CityListService {
         return mAdapter;
     }
 
-    public Bitmap getCachedIcon(String key, TaskCallback cb){
-        sentinel++;
-        if(sentinel > 100){
-            sentinel = 0;
-            Log.e("god class", "time out, returning null");
-            return null;
-        }
-        Bitmap res =  cachedIcons.get(key);
-        if(res == null && !cachedIcons.containsKey(key)){
-            cachedIcons.put(key, null);
-            PullTask.getInstance().getWeatherIconBitmap(key, bmpCallback(key, cb));
-        } else if(res != null){
-            return res;
-        }
-
-        return getCachedIcon(key, cb);
-    }
+//    public Bitmap getCachedIcon(String key, TaskCallback cb){
+//        sentinel++;
+//        if(sentinel > 10000){
+//            sentinel = 0;
+//            Log.e("god class", "time out, returning null");
+//            return null;
+//        }
+//        Bitmap res =  cachedIcons.get(key);
+//        if(res == null && !cachedIcons.containsKey(key)){
+//            cachedIcons.put(key, null);
+//            PullTask.getInstance().getWeatherIconBitmap(key, bmpCallback(key, cb));
+//        } else if(res != null){
+//            return res;
+//        }
+//
+//        return getCachedIcon(key, cb);
+//    }
 
     private TaskCallback itemCallback(final CityListItem item){
         return new TaskCallback() {

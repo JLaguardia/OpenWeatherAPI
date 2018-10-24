@@ -152,10 +152,7 @@ public class CityListAdapter extends RecyclerView.Adapter<CityViewHolder> {
         String weatherInfo = weather.getLabel() + " : " + weather.getDescription();
         holder.lblInfo.setText(weatherInfo);
         String iconCode = item.getCityItem().getWeather()[0].getIcon();
-        Bitmap bmpIcon = CityListService.getInstance().getCachedIcon(iconCode, holder);
-
-        holder.imgWeatherIcon.setImageBitmap(bmpIcon);
-        holder.imgWeatherIcon.setVisibility(View.VISIBLE);
+        PullTask.getInstance().getWeatherIconBitmap(iconCode, holder);
     }
 
     public void setItemList(List<CityListItem> list){

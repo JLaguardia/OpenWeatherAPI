@@ -61,9 +61,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastViewHolder> {
         String windDir = cityItem.getWind().getDeg() + "°";
         holder.lblWindDir.setText(windDir);
         String iconCode = cityItem.getWeather()[0].getIcon();
-        Bitmap bmpIcon = CityListService.getInstance().getCachedIcon(iconCode, holder);
-
-        holder.imgWeatherIcon.setImageBitmap(bmpIcon);
+        PullTask.getInstance().getWeatherIconBitmap(iconCode, holder);
         holder.lblDate.setText(cityItem.getDateStr());
     }
 

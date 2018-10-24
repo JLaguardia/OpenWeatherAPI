@@ -50,6 +50,7 @@ public class CityViewHolder extends RecyclerView.ViewHolder implements TaskCallb
                     @Override
                     public void run() {
                         imgWeatherIcon.setImageBitmap(bmp);
+                        imgWeatherIcon.setVisibility(View.VISIBLE);
                     }
                 });
             }

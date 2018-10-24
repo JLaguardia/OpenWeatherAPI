@@ -46,9 +46,7 @@ public class CityItemInfoAdapter implements GoogleMap.InfoWindowAdapter, TaskCal
                 ((TextView) mView.findViewById(R.id.lblInfoTemperature)).setText(
                         CityListService.getInstance().getTemperatureString(saved));
                 String iconCode = saved.getCityItem().getWeather()[0].getIcon();
-                Bitmap ico = CityListService.getInstance().getCachedIcon(iconCode, this);
-
-                ((ImageView) mView.findViewById(R.id.imgInfoIcon)).setImageBitmap(ico);
+                PullTask.getInstance().getWeatherIconBitmap(iconCode, this);
                 return;
             }
         }
