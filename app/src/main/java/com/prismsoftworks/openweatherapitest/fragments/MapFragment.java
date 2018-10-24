@@ -23,12 +23,18 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
+import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
+import com.prismsoftworks.openweatherapitest.task.PullTask;
+import com.prismsoftworks.openweatherapitest.task.TaskCallback;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -70,23 +76,42 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
         initMap(true);
     }
 
+    private TaskCallback callback(final CityListItem item, final MarkerOptions marker){
+        return new TaskCallback() {
+            @Override
+            public void callback(Bundle response) {
+                String json = response.getString(PullTask.JSON_KEY);
+                Gson gson = new GsonBuilder().create();
+                item.setCityItem(gson.fromJson(json, CityItem.class));
+                item.setName(item.getCityItem().getName());
+                marker.title(item.getCityItem().getName());
+//                mSavedCities = CityListService.getInstance().bookmarkCity(item);
+                mSavedCities.add(item);
+                CityListService.getInstance().addItems(item);
+            }
+        };
+    }
+
     @Override
     public void onMapClick(LatLng latLng) {
         if (mCurrentMarker == null) {
             String title = getResources().getString(R.string.new_pin_title);
             CityListItem item = new CityListItem(title, latLng);
 
-            if(item.getCityItem().getCoordinates() == null){
-                ((MainActivity)getActivity()).displayNetworkError(item);
-                return;
-            }
-            item.setName(item.getCityItem().getName());
-
             MarkerOptions marker = new MarkerOptions()
                     .position(new LatLng(latLng.latitude, latLng.longitude))
                     .title(item.getName());
+            try {
+                Set<LatLng> set = new HashSet<>();
+                set.add(latLng);
+                PullTask.getInstance().getWeatherCityJson(set, UnitType.IMPERIAL, callback(item, marker));
+            } catch (Exception ex){
+                ((MainActivity)getActivity()).displayNetworkError(item);
+                return;
+            }
+//            item.setName(item.getCityItem().getName());
             mMap.addMarker(marker);
-            mSavedCities = CityListService.getInstance().bookmarkCity(item);
+
         } else {
             mCurrentMarker.hideInfoWindow();
             mCurrentMarker = null;
@@ -116,7 +141,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
 
         for (CityListItem city : mSavedCities) {
             if (city != null) {
-                mMap.addMarker(new MarkerOptions().title(city.getName()).position(city.getCoordinates()));
+                mMap.addMarker(new MarkerOptions().title(city.getName()).position(city
+                        .getCoordinates()));
             }
         }
 

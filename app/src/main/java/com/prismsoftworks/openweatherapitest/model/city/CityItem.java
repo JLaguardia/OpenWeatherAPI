@@ -36,7 +36,7 @@ public class CityItem {
     @SerializedName("sys")
     private Intl intl;
 
-    private CityItem[] forecast;
+    private CityItem[] forecast = new CityItem[5];
 
     private class Intl{
         @SerializedName("country")

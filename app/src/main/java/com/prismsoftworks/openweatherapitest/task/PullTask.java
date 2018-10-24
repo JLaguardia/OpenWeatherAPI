@@ -39,13 +39,12 @@ public class PullTask {
     private static final String URL_FMT = "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=%s&appid=%s";
     private static final String FORECAST_URL_FMT = "http://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&units=%s&appid=%s";
     private static final String mApiKey = "eb6d211c0e99deef8bb87c94621ce704";
-    private static final String JSON_KEY = "jsonstr";
-    private static final String IMG_KEY = "imgico";
+    public static final String JSON_KEY = "jsonstr";
+    public static final String IMG_KEY = "imgico";
     private static final int READ_TIMEOUT = 25000;
     private static final int CONNECT_TIMEOUT = 5000;
     private static PullTask instance = null;
     private static List<Worker> workerList = new ArrayList<>();
-    private byte selectedTask;
 
     public static PullTask getInstance(){
         if(instance == null){
@@ -57,7 +56,7 @@ public class PullTask {
 
     private PullTask() { }
 
-    public String getForecastCityJson(LatLng coord, UnitType chosenUnit){
+    public void getForecastCityJson(LatLng coord, UnitType chosenUnit, TaskCallback callback){
         String apiKey = CityListService.getInstance().getWeatherApiKey();
         apiKey = (apiKey.equals("") ? mApiKey : apiKey);
         String formattedUrl = String.format(FORECAST_URL_FMT,
@@ -65,34 +64,25 @@ public class PullTask {
                 String.valueOf(coord.longitude),
                 chosenUnit.name(),
                 apiKey);
-        return fireJob(formattedUrl).getString(JSON_KEY);
+        fireJob(callback, formattedUrl);
     }
 
-    public String getWeatherCityJson(Set<LatLng> coords, UnitType chosenUnit) {
+    public void getWeatherCityJson(Set<LatLng> coords, UnitType chosenUnit, TaskCallback callback) {
         String apiKey = CityListService.getInstance().getWeatherApiKey();
         apiKey = (apiKey.equals("") ? mApiKey : apiKey);
-        StringBuilder res = new StringBuilder();
         for(LatLng coord: coords) {
             String formattedUrl = String.format(URL_FMT,
                                                 String.valueOf(coord.latitude),
                                                 String.valueOf(coord.longitude),
                                                 chosenUnit.name(),
                                                 apiKey);
-            res.append(fireJob(formattedUrl).getString(JSON_KEY));
+            fireJob(callback, formattedUrl);
         }
-
-        return res.toString();
     }
 
-    public Bitmap getWeatherIconBitmap(String iconCode){
-        Bitmap res = null;
+    public void getWeatherIconBitmap(String iconCode, TaskCallback callback){
         String formattedUrl = String.format(ICO_URL_FMT, iconCode);
-        byte[] bytes = fireJob(formattedUrl, IMG_KEY).getByteArray(IMG_KEY);
-        if(bytes != null) {
-            res = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-        }
-
-        return res;
+        fireJob(callback, formattedUrl, IMG_KEY);
     }
 
     public void stopTasks(){
@@ -102,27 +92,25 @@ public class PullTask {
         }
     }
 
-    private Bundle fireJob(String... url){
-        Bundle res = null;
-        try {
-            workerList.add(new Worker());
-            res = workerList.get(workerList.size() - 1).execute(url).get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-
-        return res;
+    private void fireJob(TaskCallback callback, String... url){
+        workerList.add(new Worker(callback));
+        workerList.get(workerList.size() - 1).execute(url);
     }
 
 //    public List<Worker> getTaskList(){
 //        return workerList;
 //    }
 
-    private static class Worker extends AsyncTask<String, Void, Bundle>{
+    private static class Worker extends AsyncTask<String, Void, Void>{
+        private final TaskCallback callback;
+
+        private Worker(TaskCallback callback){
+            Log.e("worker", "task created");
+            this.callback = callback;
+        }
+
         @Override
-        protected Bundle doInBackground(String... params) {
+        protected Void doInBackground(String... params) {
             Bundle response = new Bundle();
             StringBuilder rawResp = new StringBuilder();
             try {
@@ -168,7 +156,8 @@ public class PullTask {
             }
 
             response.putString(JSON_KEY, rawResp.toString());
-            return response;
+            callback.callback(response);
+            return null;
         }
 
         private byte[] toByteArray(InputStream in) throws IOException {
@@ -184,7 +173,7 @@ public class PullTask {
         }
 
         @Override
-        protected void onPostExecute(Bundle data) {
+        protected void onPostExecute(Void data) {
             workerList.remove(this);
             super.onPostExecute(data);
         }

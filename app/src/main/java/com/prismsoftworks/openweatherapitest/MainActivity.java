@@ -27,11 +27,14 @@ import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.prismsoftworks.openweatherapitest.fragments.CityDetailFragment;
 import com.prismsoftworks.openweatherapitest.fragments.HelpFragment;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
@@ -39,6 +42,7 @@ import com.prismsoftworks.openweatherapitest.object.CityViewHolder;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 import com.prismsoftworks.openweatherapitest.service.RecyclerTouchHelper;
 import com.prismsoftworks.openweatherapitest.task.PullTask;
+import com.prismsoftworks.openweatherapitest.task.TaskCallback;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -70,7 +74,8 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         super.onCreate(savedInstanceState);
         mFragMan = getSupportFragmentManager();
         if(savedInstanceState != null){
-            mCityDetailFragment = (CityDetailFragment) mFragMan.getFragment(savedInstanceState, DETAIL_FRAG_KEY);
+            mCityDetailFragment = (CityDetailFragment) mFragMan.getFragment(savedInstanceState,
+                    DETAIL_FRAG_KEY);
             mHelpFragment = (HelpFragment) mFragMan.getFragment(savedInstanceState, HELP_FRAG_KEY);
             activeFragTag = savedInstanceState.getString(FRAGTAG_KEY);
             CityListService.getInstance().registerContext(this);
@@ -96,9 +101,29 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         init();
     }
 
+    private CityListItem populateCity(final CityListItem item, UnitType preferredUnit){
+        Set<LatLng> set = new HashSet<>();
+        set.add(item.getCoordinates());
+        PullTask.getInstance().getWeatherCityJson(set, preferredUnit, callback(item));
+        return item;
+    }
+
+    private TaskCallback callback(final CityListItem item){
+        return new TaskCallback() {
+            @Override
+            public void callback(Bundle response) {
+                String json = response.getString(PullTask.JSON_KEY);
+                Gson gson = new GsonBuilder().create();
+                CityItem cityItem = gson.fromJson(json, CityItem.class);
+                item.setCityItem(cityItem);
+            }
+        };
+    }
+
     private void init(){
         SharedPreferences pref = getSharedPreferences("prefs", MODE_PRIVATE);
-        final UnitType preferedUnit = UnitType.valueOf(pref.getString(UNITS_KEY, UnitType.IMPERIAL.name()));
+        final UnitType preferedUnit = UnitType.valueOf(pref.getString(UNITS_KEY,
+                UnitType.IMPERIAL.name()));
 
         MenuItem unitItem =  mNavView.getMenu().getItem(1);
         Switch sw = unitItem.getActionView().findViewById(R.id.swUnit);
@@ -112,12 +137,12 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         CityListService.getInstance().setUnits(preferedUnit);
         final String citiesCsv = pref.getString(CITIES_KEY, "");
         if(!citiesCsv.equals("")){
-            for(String city : citiesCsv.split(";")){
+            for(String city : citiesCsv.split("\\;")){
                 String[] info = city.split(",");
                 LatLng coor = new LatLng(Double.parseDouble(info[1]),
                         Double.parseDouble(info[2]));
                 CityListItem saved = new CityListItem(info[0], coor);
-                savedCities.add(saved);
+                savedCities.add(populateCity(saved, preferedUnit));
             }
         }
 
@@ -154,7 +179,7 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
         ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
                 new RecyclerTouchHelper(0, ItemTouchHelper.LEFT , this);
         new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(savedRec);
-        savedRec.setAdapter(CityListService.getInstance().getAdapter());
+//        savedRec.setAdapter(CityListService.getInstance().getAdapter());
 
         mSettingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -172,7 +197,8 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
             @Override
             public void onCheckedChanged(CompoundButton btn, boolean b) {
                 int unitId = (b ? R.string.imperial_measurement : R.string.metric_measurement);
-                ((TextView)((ViewGroup)btn.getParent()).findViewById(R.id.lblUnitChoose)).setText(unitId);
+                ((TextView)((ViewGroup)btn.getParent()).findViewById(R.id.lblUnitChoose))
+                        .setText(unitId);
                 CityListService.getInstance().setUnits(b ? UnitType.IMPERIAL : UnitType.METRIC);
             }
         });
@@ -256,13 +282,15 @@ public class MainActivity extends FragmentActivity implements RecyclerTouchHelpe
 
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction, int position) {
-        final CityListItem deletedItem = CityListService.getInstance().getList().get(((CityViewHolder) viewHolder).itemIndex);
+        final CityListItem deletedItem = CityListService.getInstance().getList()
+                .get(((CityViewHolder) viewHolder).itemIndex);
         String itemName = deletedItem.getName() + " ";
 
         deletedItem.setState(ListItemState.DELETED);
         CityListService.getInstance().addItems(deletedItem);
         Snackbar snackbar = Snackbar
-                .make(findViewById(R.id.mainContainer), itemName + getResources().getText(R.string.deleted), Snackbar.LENGTH_LONG);
+                .make(findViewById(R.id.mainContainer), itemName + getResources().getText(R.string.deleted),
+                        Snackbar.LENGTH_LONG);
         snackbar.setAction(getResources().getString(R.string.undo), new View.OnClickListener() {
             @Override
             public void onClick(View view) {

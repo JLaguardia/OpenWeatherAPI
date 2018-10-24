@@ -24,15 +24,17 @@ import com.prismsoftworks.openweatherapitest.model.city.WrapperObj;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
 import com.prismsoftworks.openweatherapitest.task.PullTask;
+import com.prismsoftworks.openweatherapitest.task.TaskCallback;
 
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-public class CityDetailFragment extends Fragment {
+public class CityDetailFragment extends Fragment implements TaskCallback {
     private CityListItem cityItem;
     private String BUNDLE_KEY = "cityItem";
+    private RecyclerView mRecycler;
 
     public CityDetailFragment setCityItemFromListItem(CityListItem item){
         cityItem = item;
@@ -47,33 +49,34 @@ public class CityDetailFragment extends Fragment {
         }
 
         final View v = inflater.inflate(R.layout.city_details_fragment, container, false);
-        if(cityItem.getCityItem().getForecast() == null || cityItem.getCityItem().getForecast().length == 0) {
-            Runnable runner = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(1500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Activity act;
-                    if ((act = getActivity()) != null) {
-                        act.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mapValues(v, true);
-                            }
-                        });
-                    }
-                }
-            };
-            Thread th = new Thread(runner);
-            th.start();
-            return inflater.inflate(R.layout.loading_layout, container, false);
-        } else{
-            mapValues(v, false);
+        mRecycler = v.findViewById(R.id.forecastRecycler);
+//        if(cityItem.getCityItem().getForecast() == null || cityItem.getCityItem().getForecast().length == 0) {
+//            Runnable runner = new Runnable() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        Thread.sleep(1500);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                    Activity act;
+//                    if ((act = getActivity()) != null) {
+//                        act.runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                mapValues(v, true);
+//                            }
+//                        });
+//                    }
+//                }
+//            };
+//            Thread th = new Thread(runner);
+//            th.start();
+//            return inflater.inflate(R.layout.loading_layout, container, false);
+//        } else{
+            mapValues(v);
             return v;
-        }
+//        }
     }
 
     @Override
@@ -91,7 +94,13 @@ public class CityDetailFragment extends Fragment {
         return cityItem;
     }
 
-    private void mapValues(View v, boolean replaceView){
+    private void mapValues(View v) {
+        LinearLayoutManager llm = new LinearLayoutManager(getContext());
+        llm.setOrientation(LinearLayoutManager.HORIZONTAL);
+        mRecycler.setLayoutManager(llm);
+        ForecastAdapter adapter = new ForecastAdapter(cityItem);
+        mRecycler.setAdapter(adapter);
+        mRecycler.setHasFixedSize(true);
         CollapsingToolbarLayout tbl = v.findViewById(R.id.main_collapsing);
         TextView cityLabel = v.findViewById(R.id.lblCityName);
         TextView temp = v.findViewById(R.id.tv_temperature);
@@ -111,35 +120,19 @@ public class CityDetailFragment extends Fragment {
                 cityItem.getCityItem().getWind().getSpeed())));
         windDir.setText(cityItem.getCityItem().getWind().getDeg() + "°");
 
-        if(cityItem.getCityItem().getForecast() == null || cityItem.getCityItem().getForecast().length == 0) {
+        if (cityItem.getCityItem().getForecast()[0] == null) {
             try {
                 pullForecastData();
-            } catch(Exception ex){
-                ((MainActivity)getContext()).displayNetworkError(cityItem);
+            } catch (Exception ex) {
+                ((MainActivity) getContext()).displayNetworkError(cityItem);
                 cityItem.getCityItem().setForecast(new CityItem[]{null});
             }
         }
-
-        if(cityItem.getCityItem().getForecast().length > 0) {
-            RecyclerView rec = v.findViewById(R.id.forecastRecycler);
-            rec.setHasFixedSize(true);
-            ForecastAdapter adapter = new ForecastAdapter(cityItem);
-            LinearLayoutManager llm = new LinearLayoutManager(getContext());
-            llm.setOrientation(LinearLayoutManager.HORIZONTAL);
-            rec.setLayoutManager(llm);
-            rec.setAdapter(adapter);
-        }
-
-        if(replaceView && getView() != null) {
-            ViewGroup parent = (ViewGroup) getView();
-            parent.removeAllViews();
-            parent.addView(v);
-        }
     }
 
-    private void pullForecastData(){
-        String json = PullTask.getInstance().getForecastCityJson(cityItem.getCoordinates(), cityItem.getChosenUnitType());
-
+    @Override
+    public void callback(Bundle response) {
+        String json = response.getString(PullTask.JSON_KEY);
         Gson gson = new GsonBuilder().create();
         WrapperObj blob = gson.fromJson(json, WrapperObj.class);
         List<CityItem> list = new ArrayList<>();
@@ -167,7 +160,21 @@ public class CityDetailFragment extends Fragment {
             }
         }
 
+        Log.e("city detail", "city forecast list: " + list.size());
         cityItem.getCityItem().setForecast(list.toArray(new CityItem[]{}));
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ForecastAdapter adapter = (ForecastAdapter) mRecycler.getAdapter();
+                adapter.setCityItem(cityItem);
+                mRecycler.getAdapter().notifyDataSetChanged();
+                Log.e("city detail", "notify called");
+            }
+        });
+    }
+
+    private void pullForecastData(){
+        PullTask.getInstance().getForecastCityJson(cityItem.getCoordinates(), cityItem.getChosenUnitType(), this);
     }
 
     private String getDateString(int weekday, int month, int day, int year){

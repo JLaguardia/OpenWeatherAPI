@@ -54,22 +54,26 @@ public class CityListItem implements Serializable{
     }
 
     public CityItem getCityItem() {
-        if(cityItem == null){
-            Set<LatLng> set = new HashSet<>();
-            set.add(coordinates);
-            String json = PullTask.getInstance().getWeatherCityJson(set, UnitType.IMPERIAL);
-            Gson gson = new GsonBuilder().create();
-            try {
-                cityItem = gson.fromJson(json, CityItem.class);
-            } catch (Exception ex){
-                ex.printStackTrace();
-                cityItem = new CityItem();
-            }
-        }
-        if(cityItem == null){
-            cityItem = new CityItem();//this rarely happens
-        }
+//        if(cityItem == null){
+//            Set<LatLng> set = new HashSet<>();
+//            set.add(coordinates);
+//            String json = PullTask.getInstance().getWeatherCityJson(set, UnitType.IMPERIAL);
+//            Gson gson = new GsonBuilder().create();
+//            try {
+//                cityItem = gson.fromJson(json, CityItem.class);
+//            } catch (Exception ex){
+//                ex.printStackTrace();
+//                cityItem = new CityItem();
+//            }
+//        }
+//        if(cityItem == null){
+//            cityItem = new CityItem();//this rarely happens
+//        }
         return cityItem;
+    }
+
+    public void setCityItem(CityItem item){
+        this.cityItem = item;
     }
 
     public UnitType getChosenUnitType() {

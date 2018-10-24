@@ -46,15 +46,11 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastViewHolder> {
     public void onBindViewHolder(@NonNull ForecastViewHolder holder, int position) {
         final CityItem cityItem = items.get(position);
         if(cityItem == null){
-            holder.lblDate.setText(holder.lblDate.getContext().getResources().getString(R.string.network_error));
-            ViewGroup parent = (ViewGroup) holder.lblDate.getParent();
-            for(int i = 0; i < parent.getChildCount(); i++){
-                parent.getChildAt(i).setVisibility(View.INVISIBLE);
-            }
-
-            holder.lblDate.setVisibility(View.VISIBLE);
             return;
         }
+
+        holder.progBar.setVisibility(View.GONE);
+        holder.container.setVisibility(View.VISIBLE);
 
         holder.lblTemp.setText(CityListService.getInstance().getTemperatureString(item));
         holder.lblHumid.setText(String.valueOf(cityItem.getTemperature().getHumidity()));
@@ -65,14 +61,14 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastViewHolder> {
         String windDir = cityItem.getWind().getDeg() + "°";
         holder.lblWindDir.setText(windDir);
         String iconCode = cityItem.getWeather()[0].getIcon();
-        Bitmap bmpIcon = CityListService.getInstance().getCachedIcon(iconCode);
-        if(bmpIcon == null){
-            bmpIcon = PullTask.getInstance().getWeatherIconBitmap(iconCode);
-            CityListService.getInstance().registerIcon(iconCode, bmpIcon);
-        }
+        Bitmap bmpIcon = CityListService.getInstance().getCachedIcon(iconCode, holder);
 
         holder.imgWeatherIcon.setImageBitmap(bmpIcon);
         holder.lblDate.setText(cityItem.getDateStr());
+    }
 
+    public void setCityItem(CityListItem item){
+        this.item = item;
+        this.items = Arrays.asList(item.getCityItem().getForecast());
     }
 }

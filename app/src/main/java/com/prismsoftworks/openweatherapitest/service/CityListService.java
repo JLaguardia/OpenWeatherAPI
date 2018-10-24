@@ -3,16 +3,23 @@ package com.prismsoftworks.openweatherapitest.service;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.adapter.CityListAdapter;
 import com.prismsoftworks.openweatherapitest.fragments.MapFragment;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.city.UnitType;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
+import com.prismsoftworks.openweatherapitest.task.PullTask;
+import com.prismsoftworks.openweatherapitest.task.TaskCallback;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +39,7 @@ public class CityListService {
     private MapFragment mMapFrag;
     private Map<String, Bitmap> cachedIcons = new HashMap<>();
     private UnitType mChosenUnitType = UnitType.IMPERIAL;
+    private int sentinel = 0;
 
 
     public static synchronized CityListService getInstance(){
@@ -120,29 +128,58 @@ public class CityListService {
         list.removeAll(toRemove);
         list.addAll(toAdd);
 
-        if((list.size() == 0) || (list.size() == 1 && list.get(0) == null)){
-            if(list.size() == 0){
+        if ((list.size() == 0) || (list.size() == 1 && list.get(0) == null)) {
+            if (list.size() == 0) {
                 list.add(null);
             }
 
             mAdapter = null;
-            ((MainActivity)mContext).clearRecycler();
+            ((MainActivity) mContext).clearRecycler();
         }
 
-        if(mMapFrag != null) {
-            mMapFrag.refreshMap(list.get(list.size()-1));
+        if (mMapFrag != null) {
+            ((MainActivity) mContext).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mMapFrag.refreshMap(list.get(list.size() - 1));
+                }
+            });
         }
 
-        for(CityListItem city : list){
-            if(city != null){
+        boolean nullFound = false;
+        for (CityListItem city : list) {
+            if (city != null) {
                 city.setState(ListItemState.LOADED);
+                if(city.getCityItem() == null){
+                    nullFound = true;
+                    Set<LatLng> coords = new HashSet<>();
+                    coords.add(city.getCoordinates());
+                    PullTask.getInstance().getWeatherCityJson(coords, mChosenUnitType, itemCallback(city));
+                }
             }
         }
 
-        getAdapter().updateActiveList();
-        getAdapter().notifyItemRangeChanged(0, list.size());
-        getAdapter().notifyDataSetChanged();
+        if(!nullFound) {
+            refreshAdapterOnUi();
+        }
+
         invalidatePreferences();
+    }
+
+    private void refreshAdapterOnUi(){
+        if(mContext == null){
+            return;
+        }
+
+        ((MainActivity) mContext).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((MainActivity)mContext).clearRecycler();
+                getAdapter().updateActiveList();
+                getAdapter().notifyItemRangeChanged(0, list.size());
+                getAdapter().notifyDataSetChanged();
+            }
+        });
     }
 
     public Set<CityListItem> bookmarkCity(CityListItem city){
@@ -161,7 +198,7 @@ public class CityListService {
                 citiescsv.append(";");
             }
 
-            citiescsv.append(item.getName());
+            citiescsv.append(escapifyStr(item.getName()));
             citiescsv.append(",");
             citiescsv.append(String.valueOf(item.getCoordinates().latitude));
             citiescsv.append(",");
@@ -172,18 +209,16 @@ public class CityListService {
         mPrefs.edit().putString(MainActivity.UNITS_KEY, mChosenUnitType.name()).apply();
     }
 
-    public void deleteCity(CityListItem city){
-        list.remove(city);
-        if(list.size() == 0){
-
-            CityListItem[] arr = {null};
-            addItems(arr);
+    private String escapifyStr(String str){
+        StringBuilder res = new StringBuilder();
+        for(char c : str.toCharArray()){
+            if(((int)c) == 44 || ((int)c) == 59){
+                res.append("\\");
+            }
+            res.append(c);
         }
-        getAdapter().notifyDataSetChanged();
-        mMapFrag.refreshMap(null);
-//        mMapFrag.setCities(new HashSet<>(list)).refreshMap(null);
 
-        invalidatePreferences();
+        return res.toString();
     }
 
     public CityListAdapter getAdapter() {
@@ -195,12 +230,50 @@ public class CityListService {
         return mAdapter;
     }
 
-    public Bitmap getCachedIcon(String key){
-        return cachedIcons.get(key);
+    public Bitmap getCachedIcon(String key, TaskCallback cb){
+        sentinel++;
+        if(sentinel > 100){
+            sentinel = 0;
+            Log.e("god class", "time out, returning null");
+            return null;
+        }
+        Bitmap res =  cachedIcons.get(key);
+        if(res == null && !cachedIcons.containsKey(key)){
+            cachedIcons.put(key, null);
+            PullTask.getInstance().getWeatherIconBitmap(key, bmpCallback(key, cb));
+        } else if(res != null){
+            return res;
+        }
+
+        return getCachedIcon(key, cb);
     }
 
-    public void registerIcon(String key, Bitmap bmp){
-        cachedIcons.put(key, bmp);
+    private TaskCallback itemCallback(final CityListItem item){
+        return new TaskCallback() {
+            @Override
+            public void callback(Bundle response) {
+                String json = response.getString(PullTask.JSON_KEY);
+                Gson gson = new GsonBuilder().create();
+                item.setCityItem(gson.fromJson(json, CityItem.class));
+                refreshAdapterOnUi();
+            }
+        };
+    }
+
+    private TaskCallback bmpCallback(final String key, final TaskCallback cb){
+        return new TaskCallback() {
+            @Override
+            public void callback(Bundle response) {
+                byte[] bytes = response.getByteArray(PullTask.IMG_KEY);
+                if(bytes != null) {
+                    Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    if(bmp != null){
+                        cachedIcons.put(key, bmp);
+                        cb.callback(response);
+                    }
+                }
+            }
+        };
     }
 
     public String getTemperatureString(CityListItem item){
