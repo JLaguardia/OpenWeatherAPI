@@ -30,6 +30,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import rx.Observable;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
+
 public class CityDetailFragment extends Fragment {
     private CityListItem cityItem;
     private String BUNDLE_KEY = "cityItem";
@@ -47,33 +53,8 @@ public class CityDetailFragment extends Fragment {
         }
 
         final View v = inflater.inflate(R.layout.city_details_fragment, container, false);
-        if(cityItem.getCityItem().getForecast() == null || cityItem.getCityItem().getForecast().length == 0) {
-            Runnable runner = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(1500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Activity act;
-                    if ((act = getActivity()) != null) {
-                        act.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mapValues(v, true);
-                            }
-                        });
-                    }
-                }
-            };
-            Thread th = new Thread(runner);
-            th.start();
-            return inflater.inflate(R.layout.loading_layout, container, false);
-        } else{
-            mapValues(v, false);
-            return v;
-        }
+        mapValues(v);
+        return v;
     }
 
     @Override
@@ -91,7 +72,7 @@ public class CityDetailFragment extends Fragment {
         return cityItem;
     }
 
-    private void mapValues(View v, boolean replaceView){
+    private void mapValues(View v){
         CollapsingToolbarLayout tbl = v.findViewById(R.id.main_collapsing);
         TextView cityLabel = v.findViewById(R.id.lblCityName);
         TextView temp = v.findViewById(R.id.tv_temperature);
@@ -113,61 +94,126 @@ public class CityDetailFragment extends Fragment {
 
         if(cityItem.getCityItem().getForecast() == null || cityItem.getCityItem().getForecast().length == 0) {
             try {
-                pullForecastData();
+                pullForecastData(v);
             } catch(Exception ex){
                 ((MainActivity)getContext()).displayNetworkError(cityItem);
                 cityItem.getCityItem().setForecast(new CityItem[]{null});
             }
-        }
-
-        if(cityItem.getCityItem().getForecast().length > 0) {
-            RecyclerView rec = v.findViewById(R.id.forecastRecycler);
-            rec.setHasFixedSize(true);
-            ForecastAdapter adapter = new ForecastAdapter(cityItem);
-            LinearLayoutManager llm = new LinearLayoutManager(getContext());
-            llm.setOrientation(LinearLayoutManager.HORIZONTAL);
-            rec.setLayoutManager(llm);
-            rec.setAdapter(adapter);
-        }
-
-        if(replaceView && getView() != null) {
-            ViewGroup parent = (ViewGroup) getView();
-            parent.removeAllViews();
-            parent.addView(v);
-        }
-    }
-
-    private void pullForecastData(){
-        String json = PullTask.getInstance().getForecastCityJson(cityItem.getCoordinates(), cityItem.getChosenUnitType());
-
-        Gson gson = new GsonBuilder().create();
-        WrapperObj blob = gson.fromJson(json, WrapperObj.class);
-        List<CityItem> list = new ArrayList<>();
-        list.add(blob.list[0]);
-        long millisInDay = 86400 * 1000;
-        long prevDate = new Date(Long.parseLong(list.get(0).getDate()) * 1000).getTime();
-        for(CityItem item : blob.list){
-            Date dateObj = new Date(Long.parseLong(item.getDate()) * 1000);
-            if((list.indexOf(item) == 0) || (dateObj.getTime() >= prevDate + millisInDay)) {
-                prevDate = dateObj.getTime();
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(dateObj);
-                int weekday = cal.get(Calendar.DAY_OF_WEEK);
-                int month = cal.get(Calendar.MONTH);
-                int day = cal.get(Calendar.DAY_OF_MONTH);
-                int year = cal.get(Calendar.YEAR);
-                int hr = cal.get(Calendar.HOUR);
-                int min = cal.get(Calendar.MINUTE);
-                String dateStr = getDateString(weekday, month, day, year) + " - " +
-                        (hr < 10 ? "0" + hr : hr) + ":" + (min < 10 ? "0" + min : min);
-                item.setDateStr(dateStr);
-                if(list.indexOf(item) < 0) {
-                    list.add(item);
-                }
+        } else {
+            if (cityItem.getCityItem().getForecast().length > 0) {
+                setupRecycler(v);
             }
         }
 
-        cityItem.getCityItem().setForecast(list.toArray(new CityItem[]{}));
+//        if(replaceView && getView() != null) {
+//            ViewGroup parent = (ViewGroup) getView();
+//            parent.removeAllViews();
+//            parent.addView(v);
+//        }
+    }
+
+    private void setupRecycler(View parent){
+        Log.i("detail frag", "setting up recycler");
+        RecyclerView rec = parent.findViewById(R.id.forecastRecycler);
+        rec.setHasFixedSize(true);
+        ForecastAdapter adapter = new ForecastAdapter(cityItem);
+        LinearLayoutManager llm = new LinearLayoutManager(getContext());
+        llm.setOrientation(LinearLayoutManager.HORIZONTAL);
+        rec.setLayoutManager(llm);
+        rec.setAdapter(adapter);
+    }
+
+    private void pullForecastData(final View v){
+//        String json = PullTask.getInstance().getForecastCityJson(cityItem.getCoordinates(), cityItem.getChosenUnitType());
+        Observable.just(cityItem).map(new Func1<CityListItem, WrapperObj>() {
+            @Override
+            public WrapperObj call(CityListItem item) {
+                String json = PullTask.getInstance().getForecastCityJson(item.getCoordinates(),
+                        item.getChosenUnitType());
+                Gson gson = new GsonBuilder().create();
+                return gson.fromJson(json, WrapperObj.class);
+            }
+        })
+                .observeOn(Schedulers.io())
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<WrapperObj>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.i("Detail Frag", "dl complete");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("Detail Frag", e.getMessage());
+                        ((MainActivity)getContext()).displayNetworkError(cityItem);
+                        cityItem.getCityItem().setForecast(new CityItem[]{null});
+                    }
+
+                    @Override
+                    public void onNext(WrapperObj blob) {
+                        List<CityItem> list = new ArrayList<>();
+                        list.add(blob.list[0]);
+                        long millisInDay = 86400 * 1000;
+                        long prevDate = new Date(Long.parseLong(list.get(0).getDate()) * 1000).getTime();
+                        for(CityItem item : blob.list){
+                            Date dateObj = new Date(Long.parseLong(item.getDate()) * 1000);
+                            if((list.indexOf(item) == 0) || (dateObj.getTime() >= prevDate + millisInDay)) {
+                                prevDate = dateObj.getTime();
+                                Calendar cal = Calendar.getInstance();
+                                cal.setTime(dateObj);
+                                int weekday = cal.get(Calendar.DAY_OF_WEEK);
+                                int month = cal.get(Calendar.MONTH);
+                                int day = cal.get(Calendar.DAY_OF_MONTH);
+                                int year = cal.get(Calendar.YEAR);
+                                int hr = cal.get(Calendar.HOUR);
+                                int min = cal.get(Calendar.MINUTE);
+                                String dateStr = getDateString(weekday, month, day, year) + " - " +
+                                        (hr < 10 ? "0" + hr : hr) + ":" + (min < 10 ? "0" + min : min);
+                                item.setDateStr(dateStr);
+                                if(list.indexOf(item) < 0) {
+                                    list.add(item);
+                                }
+                            }
+                        }
+
+                        cityItem.getCityItem().setForecast(list.toArray(new CityItem[]{}));
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                setupRecycler(v);
+                            }
+                        });
+                    }
+                });
+
+//        Gson gson = new GsonBuilder().create();
+//        WrapperObj blob = gson.fromJson(json, WrapperObj.class);
+//        List<CityItem> list = new ArrayList<>();
+//        list.add(blob.list[0]);
+//        long millisInDay = 86400 * 1000;
+//        long prevDate = new Date(Long.parseLong(list.get(0).getDate()) * 1000).getTime();
+//        for(CityItem item : blob.list){
+//            Date dateObj = new Date(Long.parseLong(item.getDate()) * 1000);
+//            if((list.indexOf(item) == 0) || (dateObj.getTime() >= prevDate + millisInDay)) {
+//                prevDate = dateObj.getTime();
+//                Calendar cal = Calendar.getInstance();
+//                cal.setTime(dateObj);
+//                int weekday = cal.get(Calendar.DAY_OF_WEEK);
+//                int month = cal.get(Calendar.MONTH);
+//                int day = cal.get(Calendar.DAY_OF_MONTH);
+//                int year = cal.get(Calendar.YEAR);
+//                int hr = cal.get(Calendar.HOUR);
+//                int min = cal.get(Calendar.MINUTE);
+//                String dateStr = getDateString(weekday, month, day, year) + " - " +
+//                        (hr < 10 ? "0" + hr : hr) + ":" + (min < 10 ? "0" + min : min);
+//                item.setDateStr(dateStr);
+//                if(list.indexOf(item) < 0) {
+//                    list.add(item);
+//                }
+//            }
+//        }
+//
+//        cityItem.getCityItem().setForecast(list.toArray(new CityItem[]{}));
     }
 
     private String getDateString(int weekday, int month, int day, int year){

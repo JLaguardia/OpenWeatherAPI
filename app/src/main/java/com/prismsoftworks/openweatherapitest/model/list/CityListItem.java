@@ -57,7 +57,7 @@ public class CityListItem implements Serializable{
         if(cityItem == null){
             Set<LatLng> set = new HashSet<>();
             set.add(coordinates);
-            String json = PullTask.getInstance().getWeatherCityJson(set, UnitType.IMPERIAL);
+            String json = PullTask.getInstance().getWeatherCityJson(set, chosenUnitType);
             Gson gson = new GsonBuilder().create();
             try {
                 cityItem = gson.fromJson(json, CityItem.class);
@@ -86,5 +86,9 @@ public class CityListItem implements Serializable{
 
     public String getErrorMessage() {
         return cityItem.getErrorMessage();
+    }
+
+    public void setCityItem(CityItem item){
+        this.cityItem = item;
     }
 }

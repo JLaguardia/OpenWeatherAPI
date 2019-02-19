@@ -33,7 +33,6 @@ public class CityListService {
     private Map<String, Bitmap> cachedIcons = new HashMap<>();
     private UnitType mChosenUnitType = UnitType.IMPERIAL;
 
-
     public static synchronized CityListService getInstance(){
         if(instance == null){
             instance = new CityListService();
@@ -145,9 +144,9 @@ public class CityListService {
         invalidatePreferences();
     }
 
-    public Set<CityListItem> bookmarkCity(CityListItem city){
+    public void bookmarkCity(CityListItem city){
         addItems(city);
-        return new HashSet<>(list);
+        mMapFrag.setSavedCities(new HashSet<>(list));
     }
 
     private void invalidatePreferences(){
@@ -230,10 +229,9 @@ public class CityListService {
 
     public String getSpeedString(CityListItem item, String value){
         switch (item.getChosenUnitType()){
-            case KELVIN:
-                return value + "kph";
             case IMPERIAL:
                 return value + "mph";
+            case KELVIN:
             case METRIC:
                 return value + "kph";
             default:

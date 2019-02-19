@@ -45,7 +45,6 @@ public class PullTask {
     private static final int CONNECT_TIMEOUT = 5000;
     private static PullTask instance = null;
     private static List<Worker> workerList = new ArrayList<>();
-    private byte selectedTask;
 
     public static PullTask getInstance(){
         if(instance == null){
@@ -68,6 +67,17 @@ public class PullTask {
         return fireJob(formattedUrl).getString(JSON_KEY);
     }
 
+    public String getForecastCityRx(LatLng coord, UnitType chosenUnit){
+        String apiKey = CityListService.getInstance().getWeatherApiKey();
+        apiKey = (apiKey.equals("") ? mApiKey : apiKey);
+        String formattedUrl = String.format(FORECAST_URL_FMT,
+                String.valueOf(coord.latitude),
+                String.valueOf(coord.longitude),
+                chosenUnit.name(),
+                apiKey);
+        return rawTask(formattedUrl);
+    }
+
     public String getWeatherCityJson(Set<LatLng> coords, UnitType chosenUnit) {
         String apiKey = CityListService.getInstance().getWeatherApiKey();
         apiKey = (apiKey.equals("") ? mApiKey : apiKey);
@@ -82,6 +92,19 @@ public class PullTask {
         }
 
         return res.toString();
+    }
+
+    public String getCityItemRx(LatLng coord){
+        Log.e("Pull TASK: ", coord.latitude + " / " + coord.longitude);
+        String apiKey = CityListService.getInstance().getWeatherApiKey();
+        apiKey = (apiKey.equals("") ? mApiKey : apiKey);
+        String formattedUrl = String.format(URL_FMT,
+                String.valueOf(coord.latitude),
+                String.valueOf(coord.longitude),
+                UnitType.IMPERIAL.name(),
+                apiKey);
+        return rawTask(formattedUrl);
+
     }
 
     public Bitmap getWeatherIconBitmap(String iconCode){
@@ -116,9 +139,49 @@ public class PullTask {
         return res;
     }
 
-//    public List<Worker> getTaskList(){
-//        return workerList;
-//    }
+    private String rawTask(String fmtUrl){
+        StringBuilder rawResp = new StringBuilder();
+        try {
+            URL url = new URL(fmtUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(CONNECT_TIMEOUT);
+            conn.setReadTimeout(READ_TIMEOUT);
+            int code = conn.getResponseCode();
+            BufferedReader reader;
+            if(code >= 200 && code <= 299) {
+                reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    rawResp.append(line);
+                }
+
+            } else {
+                reader = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream()));
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    rawResp.append(line);
+                }
+            }
+            conn.disconnect();
+            reader.close();
+
+        } catch (MalformedURLException mue) {
+            mue.printStackTrace();
+            rawResp.append(mue.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
+            rawResp.append(e.getMessage());
+        } catch(Exception e){
+            e.printStackTrace();
+            rawResp.append(e.getMessage());
+        }
+
+        return rawResp.toString();
+    }
 
     private static class Worker extends AsyncTask<String, Void, Bundle>{
         @Override

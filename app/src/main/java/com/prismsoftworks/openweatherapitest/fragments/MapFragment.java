@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.text.InputType;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,15 +24,25 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.prismsoftworks.openweatherapitest.MainActivity;
 import com.prismsoftworks.openweatherapitest.R;
 import com.prismsoftworks.openweatherapitest.adapter.CityItemInfoAdapter;
+import com.prismsoftworks.openweatherapitest.model.city.CityItem;
 import com.prismsoftworks.openweatherapitest.model.list.CityListItem;
 import com.prismsoftworks.openweatherapitest.model.list.ListItemState;
 import com.prismsoftworks.openweatherapitest.service.CityListService;
+import com.prismsoftworks.openweatherapitest.task.PullTask;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import rx.Observable;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleMap.OnMapClickListener {
     private static final String TAG = MapFragment.class.getSimpleName();
@@ -71,25 +82,53 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
     }
 
     @Override
-    public void onMapClick(LatLng latLng) {
-        if (mCurrentMarker == null) {
-            String title = getResources().getString(R.string.new_pin_title);
-            CityListItem item = new CityListItem(title, latLng);
-
-            if(item.getCityItem().getCoordinates() == null){
-                ((MainActivity)getActivity()).displayNetworkError(item);
-                return;
-            }
-            item.setName(item.getCityItem().getName());
-
-            MarkerOptions marker = new MarkerOptions()
-                    .position(new LatLng(latLng.latitude, latLng.longitude))
-                    .title(item.getName());
-            mMap.addMarker(marker);
-            mSavedCities = CityListService.getInstance().bookmarkCity(item);
-        } else {
+    public void onMapClick(final LatLng latLng) {
+        if (mCurrentMarker != null) {
             mCurrentMarker.hideInfoWindow();
             mCurrentMarker = null;
+        } else {
+            Observable.just(latLng).map(new Func1<LatLng, CityListItem>() {
+
+                @Override
+                public CityListItem call(LatLng coord) {
+                    String json = PullTask.getInstance().getCityItemRx(coord);
+                    CityListItem item = new CityListItem();
+                    item.setCoordinates(latLng);
+                    Gson gson = new GsonBuilder().create();
+                    item.setCityItem(gson.fromJson(json, CityItem.class));
+                    return item;
+                }
+            })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<CityListItem>(){
+                    @Override
+                    public void onCompleted() {
+                        Log.i(TAG, "Completed DL");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "error: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(CityListItem item) {
+                        Log.i(TAG, "on next");
+                        if(item.getCityItem().getCoordinates() == null) {
+                            ((MainActivity) getActivity()).displayNetworkError(item);
+                        } else {
+                            item.setName(item.getCityItem().getName());
+
+                            MarkerOptions marker = new MarkerOptions()
+                                    .position(new LatLng(latLng.latitude, latLng.longitude))
+                                    .title(item.getName());
+                            mMap.addMarker(marker);
+                            CityListService.getInstance().bookmarkCity(item);
+                            refreshMap(item);
+                        }
+                    }
+                });
         }
     }
 
@@ -97,6 +136,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, GoogleM
 //        ((MainActivity)getContext()).handleSearchFocus();
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coord));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(10));
+    }
+
+    public void setSavedCities(Set<CityListItem> cities){
+        this.mSavedCities = cities;
     }
 
     public void refreshMap(CityListItem focusCity) {
